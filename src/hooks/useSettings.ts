@@ -4,9 +4,10 @@ import {
   onSnapshot,
   setDoc,
   getDoc,
+  Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { Settings, SettingsDoc } from '../types';
+import type { Settings, SettingsDoc, Child, ChildDoc } from '../types';
 import { useAuth } from './useAuth';
 
 const DEFAULT_REWARD_REASONS = [
@@ -41,6 +42,7 @@ export const useSettings = () => {
         const defaultSettings: SettingsDoc = {
           rewardReasons: DEFAULT_REWARD_REASONS,
           redemptionReasons: DEFAULT_REDEMPTION_REASONS,
+          children: [],
         };
         await setDoc(settingsDoc, defaultSettings);
       }
@@ -53,10 +55,16 @@ export const useSettings = () => {
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data() as SettingsDoc;
+          const children: Child[] = (data.children || []).map((childDoc) => ({
+            id: childDoc.name.toLowerCase().replace(/\s+/g, '-'),
+            name: childDoc.name,
+            createdAt: childDoc.createdAt.toDate(),
+          }));
           setSettings({
             id: snapshot.id,
             rewardReasons: data.rewardReasons,
             redemptionReasons: data.redemptionReasons,
+            children,
           });
         }
         setLoading(false);
@@ -103,6 +111,30 @@ export const useSettings = () => {
     await updateSettings({ redemptionReasons: newReasons });
   };
 
+  const addChild = async (childName: string) => {
+    if (!settings) return;
+    const newChildDoc: ChildDoc = {
+      name: childName,
+      createdAt: Timestamp.now(),
+    };
+    const newChildren = [...(settings.children || []).map(c => ({
+      name: c.name,
+      createdAt: Timestamp.fromDate(c.createdAt),
+    })), newChildDoc];
+    await updateSettings({ children: newChildren });
+  };
+
+  const removeChild = async (childId: string) => {
+    if (!settings) return;
+    const newChildren = settings.children
+      .filter((c) => c.id !== childId)
+      .map(c => ({
+        name: c.name,
+        createdAt: Timestamp.fromDate(c.createdAt),
+      }));
+    await updateSettings({ children: newChildren });
+  };
+
   return {
     settings,
     loading,
@@ -112,5 +144,7 @@ export const useSettings = () => {
     removeRewardReason,
     addRedemptionReason,
     removeRedemptionReason,
+    addChild,
+    removeChild,
   };
 };

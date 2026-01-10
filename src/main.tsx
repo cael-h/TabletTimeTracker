@@ -4,12 +4,15 @@ import './index.css'
 import App from './App.tsx'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { IdentityProvider } from './contexts/IdentityContext'
+import { ChildProvider } from './contexts/ChildContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
       <IdentityProvider>
-        <App />
+        <ChildProvider>
+          <App />
+        </ChildProvider>
       </IdentityProvider>
     </ThemeProvider>
   </StrictMode>,

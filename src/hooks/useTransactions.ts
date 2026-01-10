@@ -43,6 +43,7 @@ export const useTransactions = () => {
             reason: data.reason,
             category: data.category,
             user: data.user,
+            childId: data.childId || 'default', // Fallback for old transactions
           };
         });
         setTransactions(txns);
@@ -70,6 +71,7 @@ export const useTransactions = () => {
       reason: transaction.reason,
       category: transaction.category,
       user: transaction.user,
+      childId: transaction.childId,
     };
 
     await addDoc(collection(db, `users/${user.uid}/transactions`), docData);

@@ -3,6 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useTransactions } from '../hooks/useTransactions';
 import { useIdentity } from '../contexts/IdentityContext';
+import { useChild } from '../contexts/ChildContext';
 import { useTheme } from '../contexts/ThemeContext';
 import {
   User,
@@ -23,6 +24,7 @@ export const SettingsPage: React.FC = () => {
   const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason } = useSettings();
   const { addTransaction, balance } = useTransactions();
   const { identity, setIdentity } = useIdentity();
+  const { activeChildId } = useChild();
   const { theme, setTheme } = useTheme();
 
   const [newRewardReason, setNewRewardReason] = useState('');
@@ -58,6 +60,7 @@ export const SettingsPage: React.FC = () => {
         reason: 'Balance Reset',
         category: 'Adjustment',
         user: identity,
+        childId: activeChildId!,
       });
       alert('Balance reset successfully!');
     } catch (error) {

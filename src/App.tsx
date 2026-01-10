@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useIdentity } from './contexts/IdentityContext';
+import { useChild } from './contexts/ChildContext';
 import { AuthPage } from './pages/AuthPage';
 import { IdentitySelectPage } from './pages/IdentitySelectPage';
+import { ChildSelectPage } from './pages/ChildSelectPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AddTransactionPage } from './pages/AddTransactionPage';
 import { HistoryPage } from './pages/HistoryPage';
@@ -13,6 +15,7 @@ import { WifiOff } from 'lucide-react';
 function App() {
   const { user, loading: authLoading } = useAuth();
   const { identity } = useIdentity();
+  const { activeChildId } = useChild();
   const [activeTab, setActiveTab] = useState('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -46,6 +49,10 @@ function App() {
 
   if (!identity) {
     return <IdentitySelectPage />;
+  }
+
+  if (!activeChildId) {
+    return <ChildSelectPage />;
   }
 
   const renderPage = () => {

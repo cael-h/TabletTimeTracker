@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
 import { useIdentity } from '../contexts/IdentityContext';
+import { useChild } from '../contexts/ChildContext';
 import { TrendingUp, TrendingDown, Calendar, Plus, Check } from 'lucide-react';
 import type { TransactionInput } from '../types';
 
@@ -20,6 +21,7 @@ export const AddTransactionPage: React.FC = () => {
   const { addTransaction } = useTransactions();
   const { settings } = useSettings();
   const { identity } = useIdentity();
+  const { activeChildId } = useChild();
 
   const reasons = mode === 'earn' ? settings?.rewardReasons || [] : settings?.redemptionReasons || [];
 
@@ -70,6 +72,7 @@ export const AddTransactionPage: React.FC = () => {
         reason,
         category: mode === 'earn' ? 'Reward' : 'Redemption',
         user: identity!,
+        childId: activeChildId!,
         timestamp: dateOverride ? new Date(dateOverride) : undefined,
       };
 
