@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
-import { Plus, Minus, Trash2, Clock } from 'lucide-react';
+import { Plus, Minus, Trash2, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import type { Transaction } from '../types';
 
@@ -84,6 +84,28 @@ export const HistoryPage: React.FC = () => {
     }
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-medium rounded-full">
+            <AlertCircle size={12} />
+            Pending
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 text-xs font-medium rounded-full">
+            <XCircle size={12} />
+            Rejected
+          </span>
+        );
+      case 'approved':
+      default:
+        return null; // Don't show badge for approved transactions
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -162,7 +184,10 @@ export const HistoryPage: React.FC = () => {
                           {txn.amount > 0 ? <Plus size={20} /> : <Minus size={20} />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium truncate">{txn.reason}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-medium truncate">{txn.reason}</p>
+                            {getStatusBadge(txn.status)}
+                          </div>
                           <p className="text-xs text-gray-600 dark:text-gray-400">
                             <span style={{ color: personInfo.color }} className="font-semibold">
                               {personInfo.name}

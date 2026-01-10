@@ -9,10 +9,10 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
-  const { transactions, balance, loading } = useTransactions();
+  const { approvedTransactions, balance, loading } = useTransactions();
   const { settings } = useSettings();
 
-  const recentTransactions = transactions.slice(0, 3);
+  const recentTransactions = approvedTransactions.slice(0, 3);
 
   const formatMinutes = (minutes: number) => {
     const absMinutes = Math.abs(minutes);
