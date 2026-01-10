@@ -20,6 +20,14 @@ const DEFAULT_REWARD_REASONS = [
 
 const DEFAULT_REDEMPTION_REASONS = ['Tablet', 'TV', 'Switch'];
 
+const DEFAULT_CHORE_REASONS = [
+  'Dishes',
+  'Laundry',
+  'Vacuuming',
+  'Took Out Trash',
+  'Cooked Meal',
+];
+
 export const useSettings = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +50,7 @@ export const useSettings = () => {
         const defaultSettings: SettingsDoc = {
           rewardReasons: DEFAULT_REWARD_REASONS,
           redemptionReasons: DEFAULT_REDEMPTION_REASONS,
+          choreReasons: DEFAULT_CHORE_REASONS,
           children: [],
         };
         await setDoc(settingsDoc, defaultSettings);
@@ -59,11 +68,13 @@ export const useSettings = () => {
             id: childDoc.name.toLowerCase().replace(/\s+/g, '-'),
             name: childDoc.name,
             createdAt: childDoc.createdAt.toDate(),
+            color: childDoc.color,
           }));
           setSettings({
             id: snapshot.id,
             rewardReasons: data.rewardReasons,
             redemptionReasons: data.redemptionReasons,
+            choreReasons: data.choreReasons || DEFAULT_CHORE_REASONS,
             children,
           });
         }
@@ -111,15 +122,29 @@ export const useSettings = () => {
     await updateSettings({ redemptionReasons: newReasons });
   };
 
-  const addChild = async (childName: string) => {
+  const addChoreReason = async (reason: string) => {
+    if (!settings) return;
+    const newReasons = [...settings.choreReasons, reason];
+    await updateSettings({ choreReasons: newReasons });
+  };
+
+  const removeChoreReason = async (reason: string) => {
+    if (!settings) return;
+    const newReasons = settings.choreReasons.filter((r) => r !== reason);
+    await updateSettings({ choreReasons: newReasons });
+  };
+
+  const addChild = async (childName: string, color?: string) => {
     if (!settings) return;
     const newChildDoc: ChildDoc = {
       name: childName,
       createdAt: Timestamp.now(),
+      color,
     };
     const newChildren = [...(settings.children || []).map(c => ({
       name: c.name,
       createdAt: Timestamp.fromDate(c.createdAt),
+      color: c.color,
     })), newChildDoc];
     await updateSettings({ children: newChildren });
   };
@@ -131,7 +156,26 @@ export const useSettings = () => {
       .map(c => ({
         name: c.name,
         createdAt: Timestamp.fromDate(c.createdAt),
+        color: c.color,
       }));
+    await updateSettings({ children: newChildren });
+  };
+
+  const updateChildColor = async (childId: string, color: string) => {
+    if (!settings) return;
+    const newChildren = settings.children.map(c =>
+      c.id === childId
+        ? {
+            name: c.name,
+            createdAt: Timestamp.fromDate(c.createdAt),
+            color,
+          }
+        : {
+            name: c.name,
+            createdAt: Timestamp.fromDate(c.createdAt),
+            color: c.color,
+          }
+    );
     await updateSettings({ children: newChildren });
   };
 
@@ -144,7 +188,10 @@ export const useSettings = () => {
     removeRewardReason,
     addRedemptionReason,
     removeRedemptionReason,
+    addChoreReason,
+    removeChoreReason,
     addChild,
     removeChild,
+    updateChildColor,
   };
 };

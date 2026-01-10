@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTransactions } from '../hooks/useTransactions';
-import { Plus, Minus, Clock, TrendingUp, TrendingDown } from 'lucide-react';
+import { useSettings } from '../hooks/useSettings';
+import { Plus, Minus, Clock, TrendingUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface DashboardPageProps {
@@ -9,6 +10,7 @@ interface DashboardPageProps {
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const { transactions, balance, loading } = useTransactions();
+  const { settings } = useSettings();
 
   const recentTransactions = transactions.slice(0, 3);
 
@@ -21,6 +23,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
     }
     return `${mins}m`;
+  };
+
+  const formatAmount = (amount: number, unit: 'minutes' | 'points') => {
+    if (unit === 'points') {
+      return `${Math.abs(amount)} pts`;
+    }
+    return formatMinutes(amount);
+  };
+
+  const getPersonInfo = (childId: string) => {
+    const person = settings?.children.find((c) => c.id === childId);
+    return {
+      name: person?.name || 'Unknown',
+      color: person?.color || '#6b7280',
+    };
   };
 
   if (loading) {
@@ -60,14 +77,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           className="btn-primary py-8 flex flex-col items-center gap-2"
         >
           <TrendingUp size={32} />
-          <span className="text-lg font-semibold">Earn Minutes</span>
+          <span className="text-lg font-semibold">Add Activity</span>
         </button>
         <button
-          onClick={() => onNavigate('add')}
+          onClick={() => onNavigate('history')}
           className="btn-secondary py-8 flex flex-col items-center gap-2"
         >
-          <TrendingDown size={32} />
-          <span className="text-lg font-semibold">Spend Minutes</span>
+          <Clock size={32} />
+          <span className="text-lg font-semibold">View History</span>
         </button>
       </div>
 
@@ -91,40 +108,46 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </div>
         ) : (
           <div className="space-y-3">
-            {recentTransactions.map((txn) => (
-              <div
-                key={txn.id}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-              >
-                <div className="flex items-center gap-3">
+            {recentTransactions.map((txn) => {
+              const personInfo = getPersonInfo(txn.childId);
+              return (
+                <div
+                  key={txn.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        txn.amount > 0
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-500'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-500'
+                      }`}
+                    >
+                      {txn.amount > 0 ? <Plus size={20} /> : <Minus size={20} />}
+                    </div>
+                    <div>
+                      <p className="font-medium">{txn.reason}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <span style={{ color: personInfo.color }} className="font-semibold">
+                          {personInfo.name}
+                        </span>{' '}
+                        • {txn.user} • {formatDistanceToNow(txn.timestamp, { addSuffix: true })}
+                      </p>
+                    </div>
+                  </div>
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                    className={`text-lg font-semibold ${
                       txn.amount > 0
-                        ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-500'
-                        : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-500'
+                        ? 'text-green-600 dark:text-green-500'
+                        : 'text-red-600 dark:text-red-500'
                     }`}
                   >
-                    {txn.amount > 0 ? <Plus size={20} /> : <Minus size={20} />}
-                  </div>
-                  <div>
-                    <p className="font-medium">{txn.reason}</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      {txn.user} • {formatDistanceToNow(txn.timestamp, { addSuffix: true })}
-                    </p>
+                    {txn.amount > 0 ? '+' : ''}
+                    {formatAmount(txn.amount, txn.unit)}
                   </div>
                 </div>
-                <div
-                  className={`text-lg font-semibold ${
-                    txn.amount > 0
-                      ? 'text-green-600 dark:text-green-500'
-                      : 'text-red-600 dark:text-red-500'
-                  }`}
-                >
-                  {txn.amount > 0 ? '+' : ''}
-                  {formatMinutes(txn.amount)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

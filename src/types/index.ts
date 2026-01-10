@@ -1,5 +1,6 @@
 // Transaction types
-export type TransactionCategory = 'Reward' | 'Redemption' | 'Adjustment';
+export type TransactionCategory = 'Reward' | 'Redemption' | 'Adjustment' | 'Chore';
+export type TransactionUnit = 'minutes' | 'points';
 
 export interface Transaction {
   id: string;
@@ -8,7 +9,8 @@ export interface Transaction {
   reason: string;
   category: TransactionCategory;
   user: string; // Person who logged it (Mom, Dad, or custom name)
-  childId: string; // Which child this transaction is for
+  childId: string; // Which child/person this transaction is for
+  unit: TransactionUnit; // What type of value - minutes for kids, points for adults
 }
 
 export interface TransactionInput {
@@ -18,18 +20,21 @@ export interface TransactionInput {
   category: TransactionCategory;
   user: string;
   childId: string;
+  unit: TransactionUnit;
 }
 
-// Child types
+// Child types (can represent kids or adults)
 export interface Child {
   id: string;
   name: string;
   createdAt: Date;
+  color?: string; // Hex color code for display
 }
 
 export interface ChildDoc {
   name: string;
   createdAt: any; // Firestore Timestamp
+  color?: string;
 }
 
 // Settings types
@@ -37,6 +42,7 @@ export interface Settings {
   id: string;
   rewardReasons: string[];
   redemptionReasons: string[];
+  choreReasons: string[];
   children: Child[];
 }
 
@@ -54,10 +60,12 @@ export interface TransactionDoc {
   category: TransactionCategory;
   user: string;
   childId: string;
+  unit: TransactionUnit;
 }
 
 export interface SettingsDoc {
   rewardReasons: string[];
   redemptionReasons: string[];
+  choreReasons: string[];
   children: ChildDoc[];
 }

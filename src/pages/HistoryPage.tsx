@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
+import { useSettings } from '../hooks/useSettings';
 import { Plus, Minus, Trash2, Clock } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import type { Transaction } from '../types';
@@ -12,6 +13,7 @@ interface GroupedTransactions {
 
 export const HistoryPage: React.FC = () => {
   const { transactions, deleteTransaction, loading, balance } = useTransactions();
+  const { settings } = useSettings();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Group transactions by day
@@ -51,6 +53,21 @@ export const HistoryPage: React.FC = () => {
       return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
     }
     return `${mins}m`;
+  };
+
+  const formatAmount = (amount: number, unit: 'minutes' | 'points') => {
+    if (unit === 'points') {
+      return `${Math.abs(amount)} pts`;
+    }
+    return formatMinutes(amount);
+  };
+
+  const getPersonInfo = (childId: string) => {
+    const person = settings?.children.find((c) => c.id === childId);
+    return {
+      name: person?.name || 'Unknown',
+      color: person?.color || '#6b7280', // Default gray if no color
+    };
   };
 
   const handleDelete = async (txn: Transaction) => {
@@ -127,50 +144,56 @@ export const HistoryPage: React.FC = () => {
 
               {/* Transactions */}
               <div className="space-y-2">
-                {group.transactions.map((txn) => (
-                  <div
-                    key={txn.id}
-                    className="card flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                          txn.amount > 0
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-500'
-                            : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-500'
-                        }`}
-                      >
-                        {txn.amount > 0 ? <Plus size={20} /> : <Minus size={20} />}
+                {group.transactions.map((txn) => {
+                  const personInfo = getPersonInfo(txn.childId);
+                  return (
+                    <div
+                      key={txn.id}
+                      className="card flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div
+                          className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            txn.amount > 0
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-500'
+                              : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-500'
+                          }`}
+                        >
+                          {txn.amount > 0 ? <Plus size={20} /> : <Minus size={20} />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{txn.reason}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            <span style={{ color: personInfo.color }} className="font-semibold">
+                              {personInfo.name}
+                            </span>{' '}
+                            • {txn.user} • {format(txn.timestamp, 'h:mm a')}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{txn.reason}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                          {txn.user} • {format(txn.timestamp, 'h:mm a')}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`text-lg font-semibold ${
+                            txn.amount > 0
+                              ? 'text-green-600 dark:text-green-500'
+                              : 'text-red-600 dark:text-red-500'
+                          }`}
+                        >
+                          {txn.amount > 0 ? '+' : ''}
+                          {formatAmount(txn.amount, txn.unit)}
+                        </span>
+                        <button
+                          onClick={() => handleDelete(txn)}
+                          disabled={deletingId === txn.id}
+                          className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                          aria-label="Delete transaction"
+                        >
+                          <Trash2 size={18} />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span
-                        className={`text-lg font-semibold ${
-                          txn.amount > 0
-                            ? 'text-green-600 dark:text-green-500'
-                            : 'text-red-600 dark:text-red-500'
-                        }`}
-                      >
-                        {txn.amount > 0 ? '+' : ''}
-                        {formatMinutes(txn.amount)}
-                      </span>
-                      <button
-                        onClick={() => handleDelete(txn)}
-                        disabled={deletingId === txn.id}
-                        className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                        aria-label="Delete transaction"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}

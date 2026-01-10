@@ -17,12 +17,14 @@ import {
   TrendingUp,
   TrendingDown,
   Edit,
+  Briefcase,
+  Palette,
 } from 'lucide-react';
 import type { ThemeMode } from '../types';
 
 export const SettingsPage: React.FC = () => {
   const { signOut } = useAuth();
-  const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason } = useSettings();
+  const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason, addChoreReason, removeChoreReason, updateChildColor } = useSettings();
   const { addTransaction, balance } = useTransactions();
   const { identity, setIdentity } = useIdentity();
   const { activeChildId } = useChild();
@@ -30,6 +32,7 @@ export const SettingsPage: React.FC = () => {
 
   const [newRewardReason, setNewRewardReason] = useState('');
   const [newRedemptionReason, setNewRedemptionReason] = useState('');
+  const [newChoreReason, setNewChoreReason] = useState('');
   const [showIdentitySelector, setShowIdentitySelector] = useState(false);
   const [showCustomNameInput, setShowCustomNameInput] = useState(false);
   const [customName, setCustomName] = useState('');
@@ -47,11 +50,17 @@ export const SettingsPage: React.FC = () => {
     setNewRedemptionReason('');
   };
 
+  const handleAddChoreReason = async () => {
+    if (!newChoreReason.trim()) return;
+    await addChoreReason(newChoreReason.trim());
+    setNewChoreReason('');
+  };
+
   const handleResetBalance = async () => {
     if (!identity) return;
 
     const confirmed = confirm(
-      `Are you sure you want to reset the balance to 0? Current balance: ${balance} minutes. This will create an adjustment transaction.`
+      `Are you sure you want to reset the balance to 0? Current balance: ${balance}. This will create an adjustment transaction.`
     );
 
     if (!confirmed) return;
@@ -64,6 +73,7 @@ export const SettingsPage: React.FC = () => {
         category: 'Adjustment',
         user: identity,
         childId: activeChildId!,
+        unit: 'minutes', // Default to minutes for reset
       });
       alert('Balance reset successfully!');
     } catch (error) {
@@ -297,6 +307,74 @@ export const SettingsPage: React.FC = () => {
           >
             <Plus size={16} />
           </button>
+        </div>
+      </div>
+
+      {/* Chore Reasons */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-4">
+          <Briefcase size={20} className="text-blue-600" />
+          <h2 className="text-lg font-semibold">Chore Reasons</h2>
+        </div>
+        <div className="flex flex-wrap gap-2 mb-3">
+          {settings?.choreReasons.map((reason) => (
+            <div
+              key={reason}
+              className="chip flex items-center gap-2 chip-selected"
+            >
+              {reason}
+              <button
+                onClick={() => removeChoreReason(reason)}
+                className="hover:bg-white/20 rounded-full p-1"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newChoreReason}
+            onChange={(e) => setNewChoreReason(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleAddChoreReason()}
+            placeholder="Add new reason"
+            className="input-field flex-1"
+          />
+          <button
+            onClick={handleAddChoreReason}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
+      </div>
+
+      {/* People Colors */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-4">
+          <Palette size={20} />
+          <h2 className="text-lg font-semibold">Person Colors</h2>
+        </div>
+        <div className="space-y-3">
+          {settings?.children.map((person) => (
+            <div key={person.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span className="font-medium" style={{ color: person.color || '#6b7280' }}>
+                {person.name}
+              </span>
+              <input
+                type="color"
+                value={person.color || '#6b7280'}
+                onChange={(e) => updateChildColor(person.id, e.target.value)}
+                className="w-12 h-10 rounded border-2 border-gray-300 dark:border-gray-600 cursor-pointer"
+              />
+            </div>
+          ))}
+          {(!settings?.children || settings.children.length === 0) && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+              No people added yet. Add people from the Child Select page.
+            </p>
+          )}
         </div>
       </div>
 

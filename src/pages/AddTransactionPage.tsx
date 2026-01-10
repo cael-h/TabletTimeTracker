@@ -3,13 +3,14 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
 import { useIdentity } from '../contexts/IdentityContext';
 import { useChild } from '../contexts/ChildContext';
-import { TrendingUp, TrendingDown, Calendar, Plus, Check } from 'lucide-react';
-import type { TransactionInput } from '../types';
+import { TrendingUp, TrendingDown, Calendar, Plus, Check, Award, Briefcase } from 'lucide-react';
+import type { TransactionInput, TransactionCategory, TransactionUnit } from '../types';
 
 const QUICK_AMOUNTS = [3, 5, 10, 15, 30, 60];
 
 export const AddTransactionPage: React.FC = () => {
-  const [mode, setMode] = useState<'earn' | 'spend'>('earn');
+  const [category, setCategory] = useState<TransactionCategory>('Reward');
+  const [unit, setUnit] = useState<TransactionUnit>('minutes');
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState('');
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
@@ -23,7 +24,14 @@ export const AddTransactionPage: React.FC = () => {
   const { identity } = useIdentity();
   const { activeChildId } = useChild();
 
-  const reasons = mode === 'earn' ? settings?.rewardReasons || [] : settings?.redemptionReasons || [];
+  const reasons =
+    category === 'Reward'
+      ? settings?.rewardReasons || []
+      : category === 'Redemption'
+      ? settings?.redemptionReasons || []
+      : category === 'Chore'
+      ? settings?.choreReasons || []
+      : [];
 
   const handleAmountSelect = (amount: number) => {
     setSelectedAmount(amount);
@@ -68,11 +76,12 @@ export const AddTransactionPage: React.FC = () => {
       const reason = getReason();
 
       const transaction: TransactionInput = {
-        amount: mode === 'earn' ? amount : -amount,
+        amount: category === 'Redemption' ? -amount : amount,
         reason,
-        category: mode === 'earn' ? 'Reward' : 'Redemption',
+        category,
         user: identity!,
         childId: activeChildId!,
+        unit,
         timestamp: dateOverride ? new Date(dateOverride) : undefined,
       };
 
@@ -98,30 +107,80 @@ export const AddTransactionPage: React.FC = () => {
 
   return (
     <div className="p-4 space-y-6 pb-24">
-      {/* Mode Toggle */}
+      {/* Category Selection */}
       <div className="card">
+        <h2 className="text-lg font-semibold mb-3">Category</h2>
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => setMode('earn')}
-            className={`py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-              mode === 'earn'
+            onClick={() => setCategory('Reward')}
+            className={`py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+              category === 'Reward'
                 ? 'bg-green-500 text-white'
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
             }`}
           >
-            <TrendingUp size={20} />
-            Earn
+            <TrendingUp size={18} />
+            Reward
           </button>
           <button
-            onClick={() => setMode('spend')}
-            className={`py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
-              mode === 'spend'
+            onClick={() => setCategory('Redemption')}
+            className={`py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+              category === 'Redemption'
                 ? 'bg-red-500 text-white'
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
             }`}
           >
-            <TrendingDown size={20} />
-            Spend
+            <TrendingDown size={18} />
+            Redemption
+          </button>
+          <button
+            onClick={() => setCategory('Chore')}
+            className={`py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+              category === 'Chore'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            <Briefcase size={18} />
+            Chore
+          </button>
+          <button
+            onClick={() => setCategory('Adjustment')}
+            className={`py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+              category === 'Adjustment'
+                ? 'bg-purple-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            <Award size={18} />
+            Adjustment
+          </button>
+        </div>
+      </div>
+
+      {/* Unit Toggle */}
+      <div className="card">
+        <h2 className="text-lg font-semibold mb-3">Unit Type</h2>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setUnit('minutes')}
+            className={`py-3 rounded-lg font-semibold transition-all ${
+              unit === 'minutes'
+                ? 'bg-primary-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            Minutes
+          </button>
+          <button
+            onClick={() => setUnit('points')}
+            className={`py-3 rounded-lg font-semibold transition-all ${
+              unit === 'points'
+                ? 'bg-primary-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            Points
           </button>
         </div>
       </div>
@@ -136,13 +195,13 @@ export const AddTransactionPage: React.FC = () => {
               onClick={() => handleAmountSelect(amount)}
               className={`chip ${selectedAmount === amount && !customAmount ? 'chip-selected' : ''}`}
             >
-              {amount}m
+              {amount}{unit === 'minutes' ? 'm' : ' pts'}
             </button>
           ))}
         </div>
         <div>
           <label htmlFor="customAmount" className="block text-sm font-medium mb-2">
-            Custom Amount (minutes)
+            Custom Amount ({unit})
           </label>
           <input
             id="customAmount"
@@ -226,9 +285,11 @@ export const AddTransactionPage: React.FC = () => {
         className={`w-full py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
           success
             ? 'bg-green-500 text-white'
-            : mode === 'earn'
-            ? 'btn-primary'
-            : 'btn-danger'
+            : category === 'Redemption'
+            ? 'btn-danger'
+            : category === 'Chore'
+            ? 'bg-blue-500 text-white hover:bg-blue-600'
+            : 'btn-primary'
         }`}
       >
         {success ? (
@@ -239,7 +300,7 @@ export const AddTransactionPage: React.FC = () => {
         ) : submitting ? (
           'Submitting...'
         ) : (
-          `${mode === 'earn' ? 'Add' : 'Subtract'} ${getAmount() || 0} minutes`
+          `${category === 'Redemption' ? 'Subtract' : 'Add'} ${getAmount() || 0} ${unit === 'minutes' ? 'minutes' : 'points'}`
         )}
       </button>
     </div>
