@@ -16,6 +16,7 @@ import {
   RotateCcw,
   TrendingUp,
   TrendingDown,
+  Edit,
 } from 'lucide-react';
 import type { ThemeMode } from '../types';
 
@@ -30,6 +31,8 @@ export const SettingsPage: React.FC = () => {
   const [newRewardReason, setNewRewardReason] = useState('');
   const [newRedemptionReason, setNewRedemptionReason] = useState('');
   const [showIdentitySelector, setShowIdentitySelector] = useState(false);
+  const [showCustomNameInput, setShowCustomNameInput] = useState(false);
+  const [customName, setCustomName] = useState('');
   const [resetting, setResetting] = useState(false);
 
   const handleAddRewardReason = async () => {
@@ -83,6 +86,21 @@ export const SettingsPage: React.FC = () => {
     { value: 'system', icon: Monitor, label: 'System' },
   ];
 
+  const handleCustomNameSubmit = () => {
+    if (customName.trim()) {
+      setIdentity(customName.trim());
+      setCustomName('');
+      setShowCustomNameInput(false);
+      setShowIdentitySelector(false);
+    }
+  };
+
+  const getIdentityDisplay = () => {
+    if (identity === 'Mom') return '👩 Mom';
+    if (identity === 'Dad') return '👨 Dad';
+    return `✏️ ${identity}`;
+  };
+
   return (
     <div className="p-4 space-y-6 pb-24">
       {/* Identity Section */}
@@ -93,7 +111,37 @@ export const SettingsPage: React.FC = () => {
             <h2 className="text-lg font-semibold">Your Identity</h2>
           </div>
         </div>
-        {showIdentitySelector ? (
+        {showCustomNameInput ? (
+          <div className="space-y-3">
+            <input
+              type="text"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleCustomNameSubmit()}
+              className="input-field"
+              placeholder="Enter your name"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleCustomNameSubmit}
+                disabled={!customName.trim()}
+                className="btn-primary flex-1"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setShowCustomNameInput(false);
+                  setCustomName('');
+                }}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : showIdentitySelector ? (
           <div className="space-y-2">
             <button
               onClick={() => {
@@ -122,6 +170,16 @@ export const SettingsPage: React.FC = () => {
               👨 Dad
             </button>
             <button
+              onClick={() => {
+                setShowCustomNameInput(true);
+                setShowIdentitySelector(false);
+              }}
+              className="w-full py-3 px-4 rounded-lg font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center justify-center gap-2"
+            >
+              <Edit size={18} />
+              Type Name
+            </button>
+            <button
               onClick={() => setShowIdentitySelector(false)}
               className="w-full py-2 text-sm text-gray-600 dark:text-gray-400 hover:underline"
             >
@@ -130,7 +188,7 @@ export const SettingsPage: React.FC = () => {
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <span className="text-2xl">{identity === 'Mom' ? '👩 Mom' : '👨 Dad'}</span>
+            <span className="text-xl font-medium">{getIdentityDisplay()}</span>
             <button
               onClick={() => setShowIdentitySelector(true)}
               className="btn-secondary"
