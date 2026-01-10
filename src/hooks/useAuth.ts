@@ -3,6 +3,8 @@ import {
   type User,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from 'firebase/auth';
@@ -51,6 +53,18 @@ export const useAuth = () => {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      setError(null);
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      return result.user;
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    }
+  };
+
   const signOut = async () => {
     try {
       setError(null);
@@ -67,6 +81,7 @@ export const useAuth = () => {
     error,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut,
   };
 };
