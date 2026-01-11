@@ -89,6 +89,7 @@ export const useFamily = () => {
                     childId: memberDoc.childId,
                     isPreAdded: memberDoc.isPreAdded,
                     authUserId: memberDoc.authUserId,
+                    color: memberDoc.color,
                   };
                 });
 
@@ -429,6 +430,17 @@ export const useFamily = () => {
     });
   };
 
+  // Update a member's color
+  const updateMemberColor = async (memberId: string, color: string): Promise<void> => {
+    if (!user) throw new Error('No authenticated user');
+    if (!family) throw new Error('No family found');
+
+    const familyDoc = doc(db, `families/${family.id}`);
+    await updateDoc(familyDoc, {
+      [`members.${memberId}.color`]: color,
+    });
+  };
+
   return {
     family,
     loading,
@@ -447,5 +459,6 @@ export const useFamily = () => {
     findMatchingMember,
     linkAuthToMember,
     updateDisplayName,
+    updateMemberColor,
   };
 };

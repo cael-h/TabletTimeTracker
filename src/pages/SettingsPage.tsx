@@ -29,9 +29,9 @@ import type { ThemeMode } from '../types';
 
 export const SettingsPage: React.FC = () => {
   const { signOut, user } = useAuth();
-  const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason, addChoreReason, removeChoreReason, updateChildColor } = useSettings();
+  const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason, addChoreReason, removeChoreReason } = useSettings();
   const { addTransaction, balance } = useTransactions();
-  const { family, shareInvite, addManualMember, isApprovedParent, updateDisplayName } = useFamily();
+  const { family, shareInvite, addManualMember, isApprovedParent, updateDisplayName, updateMemberColor } = useFamily();
   const { identity, setIdentity } = useIdentity();
   const { activeChildId } = useChild();
   const { theme, setTheme } = useTheme();
@@ -189,6 +189,15 @@ export const SettingsPage: React.FC = () => {
   const getCurrentMemberInfo = () => {
     if (!user || !family) return null;
     return family.members[user.uid];
+  };
+
+  const handleUpdateMemberColor = async (memberId: string, color: string) => {
+    try {
+      await updateMemberColor(memberId, color);
+    } catch (error) {
+      console.error('Error updating member color:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update color');
+    }
   };
 
   return (
@@ -707,33 +716,66 @@ export const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* People Colors */}
-      <div className="card">
-        <div className="flex items-center gap-2 mb-4">
-          <Palette size={20} />
-          <h2 className="text-lg font-semibold">Person Colors</h2>
+      {/* Family Member Colors */}
+      {family && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Palette size={20} />
+            <h2 className="text-lg font-semibold">Family Member Colors</h2>
+          </div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Choose a color for each family member to easily identify them throughout the app
+          </p>
+          <div className="space-y-3">
+            {Object.values(family.members)
+              .filter(member => !member.isPreAdded)
+              .sort((a, b) => {
+                // Sort by role (parents first), then by name
+                if (a.role === 'parent' && b.role !== 'parent') return -1;
+                if (a.role !== 'parent' && b.role === 'parent') return 1;
+                return a.displayName.localeCompare(b.displayName);
+              })
+              .map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600"
+                      style={{ backgroundColor: member.color || '#6b7280' }}
+                    />
+                    <div>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {member.displayName}
+                      </span>
+                      <span
+                        className={`ml-2 px-2 py-0.5 text-xs font-medium rounded-full ${
+                          member.role === 'parent'
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                        }`}
+                      >
+                        {member.role === 'parent' ? 'Parent' : 'Kid'}
+                      </span>
+                    </div>
+                  </div>
+                  <input
+                    type="color"
+                    value={member.color || '#6b7280'}
+                    onChange={(e) => handleUpdateMemberColor(member.id, e.target.value)}
+                    className="w-12 h-10 rounded border-2 border-gray-300 dark:border-gray-600 cursor-pointer"
+                  />
+                </div>
+              ))}
+            {Object.values(family.members).filter(m => !m.isPreAdded).length === 0 && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+                No family members yet. Add some family members to customize their colors.
+              </p>
+            )}
+          </div>
         </div>
-        <div className="space-y-3">
-          {settings?.children.map((person) => (
-            <div key={person.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-              <span className="font-medium" style={{ color: person.color || '#6b7280' }}>
-                {person.name}
-              </span>
-              <input
-                type="color"
-                value={person.color || '#6b7280'}
-                onChange={(e) => updateChildColor(person.id, e.target.value)}
-                className="w-12 h-10 rounded border-2 border-gray-300 dark:border-gray-600 cursor-pointer"
-              />
-            </div>
-          ))}
-          {(!settings?.children || settings.children.length === 0) && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
-              No people added yet. Add people from the Child Select page.
-            </p>
-          )}
-        </div>
-      </div>
+      )}
 
       {/* Reset Balance */}
       <div className="card">

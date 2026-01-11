@@ -126,9 +126,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     key={item.member.id}
                     className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                   >
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {item.member.displayName}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {item.member.color && (
+                        <div
+                          className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600"
+                          style={{ backgroundColor: item.member.color }}
+                        />
+                      )}
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {item.member.displayName}
+                      </span>
+                    </div>
                     <span
                       className={`text-lg font-semibold ${
                         item.balance >= 0
@@ -163,9 +171,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     key={item.member.id}
                     className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
                   >
-                    <span className="font-medium text-gray-900 dark:text-white">
-                      {item.member.displayName}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {item.member.color && (
+                        <div
+                          className="w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600"
+                          style={{ backgroundColor: item.member.color }}
+                        />
+                      )}
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {item.member.displayName}
+                      </span>
+                    </div>
                     <span
                       className={`text-lg font-semibold ${
                         item.balance >= 0

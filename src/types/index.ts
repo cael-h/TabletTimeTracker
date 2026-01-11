@@ -63,6 +63,7 @@ export interface FamilyMember {
   childId?: string; // If role is 'kid', links to Child record
   isPreAdded?: boolean; // Whether this member was manually added before authentication
   authUserId?: string; // The actual Firebase Auth user ID (only set after authentication)
+  color?: string; // Hex color code for display
 }
 
 export interface FamilyMemberDoc {
@@ -77,6 +78,7 @@ export interface FamilyMemberDoc {
   childId?: string;
   isPreAdded?: boolean;
   authUserId?: string;
+  color?: string;
   // Backward compatibility - these may exist in old documents
   name?: string;
   email?: string;
