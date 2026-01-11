@@ -56,20 +56,26 @@ export const useFamily = () => {
       return;
     }
 
-    // First, find which family this user belongs to
-    const findUserFamily = async () => {
-      try {
-        // Check user's familyId in their user document
-        const userDoc = doc(db, `users/${user.uid}`);
-        const userSnapshot = await getDoc(userDoc);
+    // Subscribe to the user document to get their familyId
+    const userDocRef = doc(db, `users/${user.uid}`);
+    let unsubscribeFamily: (() => void) | null = null;
+
+    const unsubscribeUser = onSnapshot(
+      userDocRef,
+      (userSnapshot) => {
+        // Clean up old family subscription if it exists
+        if (unsubscribeFamily) {
+          unsubscribeFamily();
+          unsubscribeFamily = null;
+        }
 
         if (userSnapshot.exists() && userSnapshot.data().familyId) {
           const familyId = userSnapshot.data().familyId;
-          const familyDoc = doc(db, `families/${familyId}`);
+          const familyDocRef = doc(db, `families/${familyId}`);
 
           // Subscribe to family changes
-          const unsubscribe = onSnapshot(
-            familyDoc,
+          unsubscribeFamily = onSnapshot(
+            familyDocRef,
             (snapshot) => {
               if (snapshot.exists()) {
                 const data = snapshot.data() as FamilyGroupDoc;
@@ -108,23 +114,23 @@ export const useFamily = () => {
               setLoading(false);
             }
           );
-
-          return unsubscribe;
         } else {
           setFamily(null);
           setLoading(false);
         }
-      } catch (err) {
-        console.error('Error finding user family:', err);
+      },
+      (err) => {
+        console.error('Error fetching user document:', err);
         setError(err as Error);
         setLoading(false);
       }
-    };
-
-    const unsubscribePromise = findUserFamily();
+    );
 
     return () => {
-      unsubscribePromise.then(unsub => unsub && unsub());
+      unsubscribeUser();
+      if (unsubscribeFamily) {
+        unsubscribeFamily();
+      }
     };
   }, [user]);
 
