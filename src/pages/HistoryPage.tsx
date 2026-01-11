@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
-import { Plus, Minus, Trash2, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, Minus, Trash2, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import type { Transaction } from '../types';
 

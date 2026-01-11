@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
-import { Plus, Minus, Clock, TrendingUp } from 'lucide-react';
+import { useFamily } from '../hooks/useFamily';
+import { Plus, Minus, Clock, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface DashboardPageProps {
@@ -9,8 +10,11 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
-  const { approvedTransactions, balance, loading } = useTransactions();
+  const { approvedTransactions, loading } = useTransactions();
   const { settings } = useSettings();
+  const { family } = useFamily();
+  const [showKids, setShowKids] = useState(true);
+  const [showParents, setShowParents] = useState(true);
 
   const recentTransactions = approvedTransactions.slice(0, 3);
 
@@ -40,6 +44,55 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     };
   };
 
+  // Calculate balances for each family member
+  const memberBalances = useMemo(() => {
+    if (!family) return { kids: [], parents: [] };
+
+    const balanceMap = new Map<string, { member: any; balance: number; unit: 'minutes' | 'points' }>();
+
+    // Initialize all family members with 0 balance
+    Object.values(family.members).forEach((member) => {
+      if (!member.isPreAdded && member.childId) {
+        const unit = member.role === 'kid' ? 'minutes' : 'points';
+        balanceMap.set(member.id, { member, balance: 0, unit });
+      }
+    });
+
+    // Calculate balances from approved transactions
+    approvedTransactions.forEach((txn) => {
+      // Find the member that owns this childId
+      const member = Object.values(family.members).find(
+        m => m.childId === txn.childId && !m.isPreAdded
+      );
+
+      if (member && balanceMap.has(member.id)) {
+        const current = balanceMap.get(member.id)!;
+        balanceMap.set(member.id, {
+          ...current,
+          balance: current.balance + txn.amount,
+        });
+      }
+    });
+
+    // Separate into kids and parents
+    const kids: any[] = [];
+    const parents: any[] = [];
+
+    balanceMap.forEach((data) => {
+      if (data.member.role === 'kid') {
+        kids.push(data);
+      } else if (data.member.role === 'parent') {
+        parents.push(data);
+      }
+    });
+
+    // Sort by name
+    kids.sort((a, b) => a.member.displayName.localeCompare(b.member.displayName));
+    parents.sort((a, b) => a.member.displayName.localeCompare(b.member.displayName));
+
+    return { kids, parents };
+  }, [family, approvedTransactions]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -53,21 +106,81 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
   return (
     <div className="p-4 space-y-6 pb-24">
-      {/* Balance Card */}
-      <div className="card text-center">
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Current Balance</p>
-        <div
-          className={`text-6xl font-bold mb-4 ${
-            balance >= 0
-              ? 'text-green-600 dark:text-green-500'
-              : 'text-red-600 dark:text-red-500'
-          }`}
-        >
-          {formatMinutes(balance)}
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-500">
-          {balance >= 0 ? 'Minutes available' : 'Minutes overdrawn'}
-        </p>
+      {/* Family Members Overview */}
+      <div className="space-y-4">
+        {/* Kids Section */}
+        {memberBalances.kids.length > 0 && (
+          <div className="card">
+            <button
+              onClick={() => setShowKids(!showKids)}
+              className="w-full flex items-center justify-between mb-3"
+            >
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Kids</h2>
+              {showKids ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </button>
+
+            {showKids && (
+              <div className="space-y-2">
+                {memberBalances.kids.map((item) => (
+                  <div
+                    key={item.member.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                  >
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {item.member.displayName}
+                    </span>
+                    <span
+                      className={`text-lg font-semibold ${
+                        item.balance >= 0
+                          ? 'text-green-600 dark:text-green-500'
+                          : 'text-red-600 dark:text-red-500'
+                      }`}
+                    >
+                      {formatAmount(item.balance, item.unit)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Parents Section */}
+        {memberBalances.parents.length > 0 && (
+          <div className="card">
+            <button
+              onClick={() => setShowParents(!showParents)}
+              className="w-full flex items-center justify-between mb-3"
+            >
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Parents</h2>
+              {showParents ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            </button>
+
+            {showParents && (
+              <div className="space-y-2">
+                {memberBalances.parents.map((item) => (
+                  <div
+                    key={item.member.id}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                  >
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {item.member.displayName}
+                    </span>
+                    <span
+                      className={`text-lg font-semibold ${
+                        item.balance >= 0
+                          ? 'text-green-600 dark:text-green-500'
+                          : 'text-red-600 dark:text-red-500'
+                      }`}
+                    >
+                      {formatAmount(item.balance, item.unit)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Quick Actions */}

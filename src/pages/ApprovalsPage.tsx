@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useFamily } from '../hooks/useFamily';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
-import { UserCheck, UserX, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { UserCheck, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 export const ApprovalsPage = () => {
-  const { family, isApprovedParent, getPendingParentRequests, updateMemberStatus } = useFamily();
+  const { isApprovedParent, getPendingParentRequests, updateMemberStatus } = useFamily();
   const { pendingTransactions, updateTransactionStatus } = useTransactions();
   const { settings } = useSettings();
   const [loading, setLoading] = useState<string | null>(null);
@@ -111,11 +111,13 @@ export const ApprovalsPage = () => {
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <h3 className="font-semibold text-gray-900 dark:text-white">
-                        {member.name}
+                        {member.displayName}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {member.email}
-                      </p>
+                      {member.emails && member.emails.length > 0 && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {member.emails[0]}
+                        </p>
+                      )}
                       <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         Requested {formatTime(member.joinedAt)}
                       </p>

@@ -31,7 +31,7 @@ export const SettingsPage: React.FC = () => {
   const { signOut, user } = useAuth();
   const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason, addChoreReason, removeChoreReason, updateChildColor } = useSettings();
   const { addTransaction, balance } = useTransactions();
-  const { family, shareInvite, getInviteLink } = useFamily();
+  const { family, shareInvite, addManualMember, isApprovedParent, updateDisplayName } = useFamily();
   const { identity, setIdentity } = useIdentity();
   const { activeChildId } = useChild();
   const { theme, setTheme } = useTheme();
@@ -44,6 +44,13 @@ export const SettingsPage: React.FC = () => {
   const [customName, setCustomName] = useState('');
   const [resetting, setResetting] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [showAddMember, setShowAddMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState<'parent' | 'kid'>('kid');
+  const [addingMember, setAddingMember] = useState(false);
+  const [showEditDisplayName, setShowEditDisplayName] = useState(false);
+  const [editDisplayName, setEditDisplayName] = useState('');
 
   const handleAddRewardReason = async () => {
     if (!newRewardReason.trim()) return;
@@ -64,7 +71,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleResetBalance = async () => {
-    if (!identity) return;
+    if (!identity || !user) return;
 
     const confirmed = confirm(
       `Are you sure you want to reset the balance to 0? Current balance: ${balance}. This will create an adjustment transaction.`
@@ -79,6 +86,7 @@ export const SettingsPage: React.FC = () => {
         reason: 'Balance Reset',
         category: 'Adjustment',
         user: identity,
+        userId: user.uid,
         childId: activeChildId!,
         unit: 'minutes', // Default to minutes for reset
       });
@@ -136,6 +144,51 @@ export const SettingsPage: React.FC = () => {
     if (identity === 'Mom') return '👩 Mom';
     if (identity === 'Dad') return '👨 Dad';
     return `✏️ ${identity}`;
+  };
+
+  const handleAddMember = async () => {
+    if (!newMemberName.trim()) {
+      alert('Please enter a name');
+      return;
+    }
+
+    setAddingMember(true);
+    try {
+      await addManualMember(
+        newMemberName.trim(),
+        newMemberEmail.trim() || undefined,
+        newMemberRole
+      );
+      setNewMemberName('');
+      setNewMemberEmail('');
+      setNewMemberRole('kid');
+      setShowAddMember(false);
+      alert('Family member added successfully!');
+    } catch (error) {
+      console.error('Error adding member:', error);
+      alert(error instanceof Error ? error.message : 'Failed to add family member');
+    } finally {
+      setAddingMember(false);
+    }
+  };
+
+  const handleUpdateDisplayName = async () => {
+    if (!editDisplayName.trim() || !user) return;
+
+    try {
+      await updateDisplayName(user.uid, editDisplayName.trim());
+      setShowEditDisplayName(false);
+      setEditDisplayName('');
+      alert('Display name updated successfully!');
+    } catch (error) {
+      console.error('Error updating display name:', error);
+      alert(error instanceof Error ? error.message : 'Failed to update display name');
+    }
+  };
+
+  const getCurrentMemberInfo = () => {
+    if (!user || !family) return null;
+    return family.members[user.uid];
   };
 
   return (
@@ -236,6 +289,83 @@ export const SettingsPage: React.FC = () => {
         )}
       </div>
 
+      {/* Display Name & Emails Section */}
+      {family && getCurrentMemberInfo() && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <User size={20} />
+              <h2 className="text-lg font-semibold">Profile</h2>
+            </div>
+          </div>
+
+          {/* Display Name */}
+          <div className="mb-4">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Display Name</div>
+            {showEditDisplayName ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={editDisplayName}
+                  onChange={(e) => setEditDisplayName(e.target.value)}
+                  className="input-field w-full"
+                  placeholder="Enter display name"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button onClick={handleUpdateDisplayName} className="btn-primary flex-1">
+                    Save
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowEditDisplayName(false);
+                      setEditDisplayName('');
+                    }}
+                    className="btn-secondary flex-1"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {getCurrentMemberInfo()?.displayName}
+                </span>
+                <button
+                  onClick={() => {
+                    setEditDisplayName(getCurrentMemberInfo()?.displayName || '');
+                    setShowEditDisplayName(true);
+                  }}
+                  className="btn-secondary text-sm"
+                >
+                  Edit
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Affiliated Emails */}
+          {getCurrentMemberInfo()?.emails && getCurrentMemberInfo()!.emails.length > 0 && (
+            <div>
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Affiliated Emails
+              </div>
+              <div className="space-y-2">
+                {getCurrentMemberInfo()!.emails.map((email, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    {email}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Family Section */}
       {family && (
         <div className="card">
@@ -278,6 +408,110 @@ export const SettingsPage: React.FC = () => {
             Invite Family Member
           </button>
 
+          {/* Add Family Member Manually (only for approved parents) */}
+          {isApprovedParent() && (
+            <div className="mb-4">
+              {showAddMember ? (
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">Add Family Member</h3>
+                    <button
+                      onClick={() => {
+                        setShowAddMember(false);
+                        setNewMemberName('');
+                        setNewMemberEmail('');
+                        setNewMemberRole('kid');
+                      }}
+                      className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                      placeholder="Enter name"
+                      className="input-field w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Email (optional)
+                    </label>
+                    <input
+                      type="email"
+                      value={newMemberEmail}
+                      onChange={(e) => setNewMemberEmail(e.target.value)}
+                      placeholder="Enter email"
+                      className="input-field w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Role
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => setNewMemberRole('kid')}
+                        className={`py-2 px-4 rounded-lg font-medium ${
+                          newMemberRole === 'kid'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        Kid
+                      </button>
+                      <button
+                        onClick={() => setNewMemberRole('parent')}
+                        className={`py-2 px-4 rounded-lg font-medium ${
+                          newMemberRole === 'parent'
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                      >
+                        Parent
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleAddMember}
+                    disabled={addingMember || !newMemberName.trim()}
+                    className="btn-primary w-full flex items-center justify-center gap-2"
+                  >
+                    {addingMember ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus size={20} />
+                        Add Member
+                      </>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowAddMember(true)}
+                  className="w-full py-3 px-4 bg-secondary-500 hover:bg-secondary-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                >
+                  <Plus size={20} />
+                  Add Family Member Manually
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Family Members List */}
           <div>
             <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -288,7 +522,7 @@ export const SettingsPage: React.FC = () => {
                 <div
                   key={member.id}
                   className={`p-3 rounded-lg border ${
-                    member.id === user?.uid
+                    member.authUserId === user?.uid
                       ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800'
                       : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
                   }`}
@@ -296,12 +530,17 @@ export const SettingsPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-medium text-gray-900 dark:text-white">
-                        {member.name}
-                        {member.id === user?.uid && (
+                        {member.displayName}
+                        {member.authUserId === user?.uid && (
                           <span className="ml-2 text-xs text-primary-600 dark:text-primary-400">(You)</span>
                         )}
+                        {member.isPreAdded && (
+                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(Not signed in yet)</span>
+                        )}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">{member.email}</div>
+                      {member.emails.length > 0 && (
+                        <div className="text-sm text-gray-600 dark:text-gray-400">{member.emails[0]}</div>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span
