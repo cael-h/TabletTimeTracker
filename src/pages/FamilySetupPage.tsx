@@ -74,7 +74,7 @@ export const FamilySetupPage = () => {
     }
   };
 
-  const renderRoleSelection = () => (
+  const renderRoleSelection = (showApprovalWarning: boolean = false) => (
     <div className="space-y-3 mb-6">
       <p className="text-sm font-medium text-gray-700 dark:text-gray-300">I am a:</p>
       <div className="grid grid-cols-2 gap-3">
@@ -105,7 +105,7 @@ export const FamilySetupPage = () => {
           </div>
         </button>
       </div>
-      {role === 'parent' && (
+      {role === 'parent' && showApprovalWarning && (
         <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
           Parent accounts require approval from an existing parent before gaining full access.
         </p>
@@ -168,7 +168,7 @@ export const FamilySetupPage = () => {
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
-            {renderRoleSelection()}
+            {renderRoleSelection(true)}
 
             <div className="space-y-4">
               <div>
