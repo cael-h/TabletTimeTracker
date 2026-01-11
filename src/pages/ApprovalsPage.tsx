@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { useFamily } from '../hooks/useFamily';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
-import { UserCheck, UserX, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { UserCheck, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 export const ApprovalsPage = () => {
-  const { family, isApprovedParent, getPendingParentRequests, updateMemberStatus } = useFamily();
+  const { isApprovedParent, getPendingParentRequests, updateMemberStatus } = useFamily();
   const { pendingTransactions, updateTransactionStatus } = useTransactions();
   const { settings } = useSettings();
   const [loading, setLoading] = useState<string | null>(null);

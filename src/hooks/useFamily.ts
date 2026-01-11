@@ -5,10 +5,6 @@ import {
   setDoc,
   onSnapshot,
   Timestamp,
-  collection,
-  query,
-  where,
-  getDocs,
   updateDoc,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';

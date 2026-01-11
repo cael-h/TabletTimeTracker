@@ -31,7 +31,7 @@ export const SettingsPage: React.FC = () => {
   const { signOut, user } = useAuth();
   const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason, addChoreReason, removeChoreReason, updateChildColor } = useSettings();
   const { addTransaction, balance } = useTransactions();
-  const { family, shareInvite, getInviteLink } = useFamily();
+  const { family, shareInvite } = useFamily();
   const { identity, setIdentity } = useIdentity();
   const { activeChildId } = useChild();
   const { theme, setTheme } = useTheme();
@@ -64,7 +64,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   const handleResetBalance = async () => {
-    if (!identity) return;
+    if (!identity || !user) return;
 
     const confirmed = confirm(
       `Are you sure you want to reset the balance to 0? Current balance: ${balance}. This will create an adjustment transaction.`
@@ -79,6 +79,7 @@ export const SettingsPage: React.FC = () => {
         reason: 'Balance Reset',
         category: 'Adjustment',
         user: identity,
+        userId: user.uid,
         childId: activeChildId!,
         unit: 'minutes', // Default to minutes for reset
       });

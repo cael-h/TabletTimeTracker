@@ -25,11 +25,10 @@ export const AddTransactionPage: React.FC = () => {
   const { user } = useAuth();
   const { addTransaction } = useTransactions();
   const { settings } = useSettings();
-  const { getCurrentMember, isApprovedParent } = useFamily();
+  const { isApprovedParent } = useFamily();
   const { identity } = useIdentity();
   const { activeChildId } = useChild();
 
-  const currentMember = getCurrentMember();
   const isParent = isApprovedParent();
 
   const reasons =
