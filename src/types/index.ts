@@ -51,26 +51,37 @@ export type MemberRole = 'parent' | 'kid';
 export type MemberStatus = 'approved' | 'pending' | 'rejected';
 
 export interface FamilyMember {
-  id: string; // Firebase Auth user ID
-  name: string; // Display name
-  email: string; // User's email
+  id: string; // Firebase Auth user ID (or generated ID for pre-added members)
+  displayName: string; // The name to display in the app
+  emails: string[]; // Array of emails associated with this member
+  alternateNames: string[]; // Array of alternate names for this member
   role: MemberRole;
   status: MemberStatus;
   joinedAt: Date;
   approvedBy?: string; // userId of parent who approved (for parent requests)
   approvedAt?: Date;
   childId?: string; // If role is 'kid', links to Child record
+  isPreAdded?: boolean; // Whether this member was manually added before authentication
+  authUserId?: string; // The actual Firebase Auth user ID (only set after authentication)
+  color?: string; // Hex color code for display
 }
 
 export interface FamilyMemberDoc {
-  name: string;
-  email: string;
+  displayName: string;
+  emails: string[];
+  alternateNames: string[];
   role: MemberRole;
   status: MemberStatus;
   joinedAt: any; // Firestore Timestamp
   approvedBy?: string;
   approvedAt?: any; // Firestore Timestamp
   childId?: string;
+  isPreAdded?: boolean;
+  authUserId?: string;
+  color?: string;
+  // Backward compatibility - these may exist in old documents
+  name?: string;
+  email?: string;
 }
 
 export interface FamilyGroup {

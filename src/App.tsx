@@ -6,6 +6,7 @@ import { useIdentity } from './contexts/IdentityContext';
 import { useChild } from './contexts/ChildContext';
 import { AuthPage } from './pages/AuthPage';
 import { FamilySetupPage } from './pages/FamilySetupPage';
+import { MemberMatchPage } from './pages/MemberMatchPage';
 import { IdentitySelectPage } from './pages/IdentitySelectPage';
 import { ChildSelectPage } from './pages/ChildSelectPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -24,6 +25,7 @@ function App() {
   const { activeChildId } = useChild();
   const [activeTab, setActiveTab] = useState('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [matchHandled, setMatchHandled] = useState(false);
 
   const pendingCount = (getPendingParentRequests?.()?.length || 0) + (pendingTransactions?.length || 0);
 
@@ -57,6 +59,23 @@ function App() {
 
   if (!family) {
     return <FamilySetupPage />;
+  }
+
+  // Check if user needs to be matched with a pre-added member
+  if (!matchHandled && family) {
+    const userMember = Object.values(family.members).find(
+      m => m.authUserId === user.uid && !m.isPreAdded
+    );
+
+    // If user doesn't have a linked member yet, show match page
+    if (!userMember) {
+      return <MemberMatchPage onMatchHandled={() => setMatchHandled(true)} />;
+    } else {
+      // User is already linked, mark as handled
+      if (!matchHandled) {
+        setMatchHandled(true);
+      }
+    }
   }
 
   if (!identity) {

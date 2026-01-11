@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
 import { useFamily } from '../hooks/useFamily';
 import { useIdentity } from '../contexts/IdentityContext';
-import { useChild } from '../contexts/ChildContext';
-import { TrendingUp, TrendingDown, Calendar, Plus, Check, Award, Briefcase } from 'lucide-react';
+import { TrendingUp, TrendingDown, Calendar, Plus, Check, Award, Briefcase, User } from 'lucide-react';
 import type { TransactionInput, TransactionCategory, TransactionUnit } from '../types';
 
 const QUICK_AMOUNTS = [3, 5, 10, 15, 30, 60];
@@ -21,16 +20,42 @@ export const AddTransactionPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('Success!');
+  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
   const { user } = useAuth();
   const { addTransaction } = useTransactions();
   const { settings } = useSettings();
-  const { getCurrentMember, isApprovedParent } = useFamily();
+  const { family, isApprovedParent } = useFamily();
   const { identity } = useIdentity();
-  const { activeChildId } = useChild();
 
-  const currentMember = getCurrentMember();
   const isParent = isApprovedParent();
+
+  // Get available family members (including pre-added ones)
+  const availableMembers = family
+    ? Object.values(family.members).filter(m => m.childId)
+    : [];
+
+  // Set default selected member to current user or first available
+  useEffect(() => {
+    if (!selectedMemberId && availableMembers.length > 0) {
+      // Try to find current user's member record
+      const currentUserMember = availableMembers.find(m => m.authUserId === user?.uid);
+      if (currentUserMember) {
+        setSelectedMemberId(currentUserMember.id);
+      } else {
+        setSelectedMemberId(availableMembers[0].id);
+      }
+    }
+  }, [availableMembers, selectedMemberId, user]);
+
+  const selectedMember = availableMembers.find(m => m.id === selectedMemberId);
+
+  // Update unit based on selected member's role
+  useEffect(() => {
+    if (selectedMember) {
+      setUnit(selectedMember.role === 'kid' ? 'minutes' : 'points');
+    }
+  }, [selectedMember]);
 
   const reasons =
     category === 'Reward'
@@ -72,11 +97,11 @@ export const AddTransactionPage: React.FC = () => {
   const canSubmit = () => {
     const amount = getAmount();
     const reason = getReason();
-    return amount > 0 && reason.length > 0 && identity;
+    return amount > 0 && reason.length > 0 && identity && selectedMember;
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit() || !user) return;
+    if (!canSubmit() || !user || !selectedMember) return;
 
     setSubmitting(true);
     try {
@@ -99,7 +124,7 @@ export const AddTransactionPage: React.FC = () => {
         category,
         user: identity!,
         userId: user.uid,
-        childId: activeChildId!,
+        childId: selectedMember.childId!,
         unit,
         timestamp: dateOverride ? new Date(dateOverride) : undefined,
         status,
@@ -133,6 +158,35 @@ export const AddTransactionPage: React.FC = () => {
 
   return (
     <div className="p-4 space-y-6 pb-24">
+      {/* Family Member Selection */}
+      <div className="card">
+        <div className="flex items-center gap-2 mb-3">
+          <User size={20} />
+          <h2 className="text-lg font-semibold">For</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {availableMembers.map((member) => (
+            <button
+              key={member.id}
+              onClick={() => setSelectedMemberId(member.id)}
+              className={`py-3 px-4 rounded-lg font-medium flex items-center gap-2 transition-all ${
+                selectedMemberId === member.id
+                  ? 'bg-primary-500 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+              }`}
+            >
+              {member.color && (
+                <div
+                  className="w-4 h-4 rounded-full border-2 border-current"
+                  style={{ backgroundColor: member.color }}
+                />
+              )}
+              <span className="truncate">{member.displayName}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Category Selection */}
       <div className="card">
         <h2 className="text-lg font-semibold mb-3">Category</h2>

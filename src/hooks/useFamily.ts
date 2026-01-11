@@ -5,11 +5,8 @@ import {
   setDoc,
   onSnapshot,
   Timestamp,
-  collection,
-  query,
-  where,
-  getDocs,
   updateDoc,
+  arrayUnion,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { FamilyGroup, FamilyGroupDoc, FamilyMember, FamilyMemberDoc, MemberRole, MemberStatus } from '../types';
@@ -52,7 +49,57 @@ export const useFamily = () => {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  // Listen to the user's family membership
+  // Helper function to create a Child record for tracking transactions
+  const createChildRecord = async (familyId: string, name: string): Promise<string> => {
+    const childId = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+    const settingsDoc = doc(db, `families/${familyId}/settings/config`);
+
+    // Get current settings or create default
+    const settingsSnap = await getDoc(settingsDoc);
+    if (!settingsSnap.exists()) {
+      await setDoc(settingsDoc, {
+        rewardReasons: [],
+        redemptionReasons: [],
+        choreReasons: [],
+        children: [{
+          name: name,
+          createdAt: Timestamp.now(),
+          color: '#6b7280',
+        }]
+      });
+    } else {
+      // Add child to existing array
+      await updateDoc(settingsDoc, {
+        children: arrayUnion({
+          name: name,
+          createdAt: Timestamp.now(),
+          color: '#6b7280',
+        })
+      });
+    }
+
+    return childId;
+  };
+
+  // Helper function to ensure all members have childIds (migration for existing data)
+  const ensureMembersHaveChildIds = async (familyId: string, members: { [userId: string]: FamilyMember }) => {
+    const updates: { [key: string]: string } = {};
+    let needsUpdate = false;
+
+    for (const [memberId, member] of Object.entries(members)) {
+      if (!member.childId) {
+        needsUpdate = true;
+        const childId = await createChildRecord(familyId, member.displayName);
+        updates[`members.${memberId}.childId`] = childId;
+      }
+    }
+
+    if (needsUpdate) {
+      const familyDoc = doc(db, `families/${familyId}`);
+      await updateDoc(familyDoc, updates);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       setFamily(null);
@@ -82,24 +129,33 @@ export const useFamily = () => {
                 Object.entries(data.members).forEach(([userId, memberDoc]) => {
                   members[userId] = {
                     id: userId,
-                    name: memberDoc.name,
-                    email: memberDoc.email,
+                    displayName: memberDoc.displayName || memberDoc.name || 'Unknown',
+                    emails: memberDoc.emails || (memberDoc.email ? [memberDoc.email] : []),
+                    alternateNames: memberDoc.alternateNames || [],
                     role: memberDoc.role,
                     status: memberDoc.status,
                     joinedAt: memberDoc.joinedAt.toDate(),
                     approvedBy: memberDoc.approvedBy,
                     approvedAt: memberDoc.approvedAt?.toDate(),
                     childId: memberDoc.childId,
+                    isPreAdded: memberDoc.isPreAdded,
+                    authUserId: memberDoc.authUserId,
+                    color: memberDoc.color,
                   };
                 });
 
-                setFamily({
+                const familyData = {
                   id: snapshot.id,
                   name: data.name,
                   createdAt: data.createdAt.toDate(),
                   createdBy: data.createdBy,
                   members,
-                });
+                };
+
+                setFamily(familyData);
+
+                // Ensure all members have childIds (migration for existing data)
+                ensureMembersHaveChildIds(snapshot.id, members).catch(console.error);
               } else {
                 setFamily(null);
               }
@@ -137,13 +193,20 @@ export const useFamily = () => {
     if (!user) throw new Error('No authenticated user');
 
     const familyCode = await generateUniqueFamilyCode();
+    const displayName = user.displayName || user.email || 'User';
+
+    // Create a child record for transaction tracking
+    const childId = await createChildRecord(familyCode, displayName);
 
     const memberDoc: FamilyMemberDoc = {
-      name: user.displayName || user.email || 'User',
-      email: user.email || '',
+      displayName: displayName,
+      emails: user.email ? [user.email] : [],
+      alternateNames: [],
       role,
       status: 'approved', // Creator is auto-approved
       joinedAt: Timestamp.now(),
+      authUserId: user.uid,
+      childId: childId,
     };
 
     const familyDoc: FamilyGroupDoc = {
@@ -184,12 +247,20 @@ export const useFamily = () => {
       throw new Error('You are already a member of this family');
     }
 
+    const displayName = user.displayName || user.email || 'User';
+
+    // Create a child record for transaction tracking
+    const childId = await createChildRecord(familyCode, displayName);
+
     const memberDoc: FamilyMemberDoc = {
-      name: user.displayName || user.email || 'User',
-      email: user.email || '',
+      displayName: displayName,
+      emails: user.email ? [user.email] : [],
+      alternateNames: [],
       role,
       status: role === 'parent' ? 'pending' : 'approved', // Parents need approval, kids are auto-approved
       joinedAt: Timestamp.now(),
+      authUserId: user.uid,
+      childId: childId,
     };
 
     // Add member to family
@@ -299,6 +370,148 @@ export const useFamily = () => {
     }
   };
 
+  // Manually add a family member (before they authenticate)
+  const addManualMember = async (name: string, email: string | undefined, role: MemberRole): Promise<void> => {
+    if (!user) throw new Error('No authenticated user');
+    if (!family) throw new Error('No family found');
+
+    // Check if current user is an approved parent
+    const currentMember = family.members[user.uid];
+    if (!currentMember || currentMember.role !== 'parent' || currentMember.status !== 'approved') {
+      throw new Error('Only approved parents can add family members');
+    }
+
+    // Generate a unique ID for the pre-added member
+    const memberId = `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Create a child record for transaction tracking
+    const childId = await createChildRecord(family.id, name);
+
+    const memberDoc: FamilyMemberDoc = {
+      displayName: name,
+      emails: email ? [email] : [],
+      alternateNames: [],
+      role,
+      status: 'approved', // Pre-added members are auto-approved
+      joinedAt: Timestamp.now(),
+      isPreAdded: true,
+      childId: childId,
+    };
+
+    const familyDoc = doc(db, `families/${family.id}`);
+    await updateDoc(familyDoc, {
+      [`members.${memberId}`]: memberDoc,
+    });
+  };
+
+  // Find a matching member by name or email
+  const findMatchingMember = (userName: string, userEmail: string | null): FamilyMember | null => {
+    if (!family) return null;
+
+    const normalizedUserName = userName.toLowerCase().trim();
+    const normalizedUserEmail = userEmail?.toLowerCase().trim();
+
+    for (const member of Object.values(family.members)) {
+      // Skip if this member is already authenticated
+      if (!member.isPreAdded) continue;
+
+      // Check if name matches
+      const displayNameMatch = member.displayName.toLowerCase().trim() === normalizedUserName;
+      const alternateNameMatch = member.alternateNames.some(
+        name => name.toLowerCase().trim() === normalizedUserName
+      );
+
+      // Check if email matches
+      const emailMatch = normalizedUserEmail && member.emails.some(
+        email => email.toLowerCase().trim() === normalizedUserEmail
+      );
+
+      if (displayNameMatch || alternateNameMatch || emailMatch) {
+        return member;
+      }
+    }
+
+    return null;
+  };
+
+  // Link an authenticated user to a pre-added member
+  const linkAuthToMember = async (memberId: string, userName: string, userEmail: string | null): Promise<void> => {
+    if (!user) throw new Error('No authenticated user');
+    if (!family) throw new Error('No family found');
+
+    const member = family.members[memberId];
+    if (!member || !member.isPreAdded) {
+      throw new Error('Invalid member to link');
+    }
+
+    const familyDoc = doc(db, `families/${family.id}`);
+
+    // Prepare updated member data
+    const updatedMember: Partial<FamilyMemberDoc> = {
+      authUserId: user.uid,
+      isPreAdded: false,
+    };
+
+    // Add email if not already in the list
+    const normalizedUserEmail = userEmail?.toLowerCase().trim();
+    if (normalizedUserEmail && userEmail && !member.emails.some(e => e.toLowerCase().trim() === normalizedUserEmail)) {
+      updatedMember.emails = [...member.emails, userEmail];
+    }
+
+    // Add name as alternate if different from display name
+    const normalizedUserName = userName.trim();
+    if (
+      normalizedUserName.toLowerCase() !== member.displayName.toLowerCase() &&
+      !member.alternateNames.some(n => n.toLowerCase() === normalizedUserName.toLowerCase())
+    ) {
+      updatedMember.alternateNames = [...member.alternateNames, normalizedUserName];
+    }
+
+    // Update the member document
+    await updateDoc(familyDoc, {
+      [`members.${memberId}.authUserId`]: updatedMember.authUserId,
+      [`members.${memberId}.isPreAdded`]: updatedMember.isPreAdded,
+      ...(updatedMember.emails && { [`members.${memberId}.emails`]: updatedMember.emails }),
+      ...(updatedMember.alternateNames && { [`members.${memberId}.alternateNames`]: updatedMember.alternateNames }),
+    });
+
+    // Update user document with family ID
+    await setDoc(doc(db, `users/${user.uid}`), {
+      familyId: family.id,
+    }, { merge: true });
+  };
+
+  // Update a member's display name
+  const updateDisplayName = async (memberId: string, displayName: string): Promise<void> => {
+    if (!user) throw new Error('No authenticated user');
+    if (!family) throw new Error('No family found');
+
+    // Check if current user is updating their own name or is an approved parent
+    const currentMember = family.members[user.uid];
+    const isOwnProfile = memberId === user.uid;
+    const isApprovedParent = currentMember?.role === 'parent' && currentMember?.status === 'approved';
+
+    if (!isOwnProfile && !isApprovedParent) {
+      throw new Error('You can only update your own display name');
+    }
+
+    const familyDoc = doc(db, `families/${family.id}`);
+    await updateDoc(familyDoc, {
+      [`members.${memberId}.displayName`]: displayName,
+    });
+  };
+
+  // Update a member's color
+  const updateMemberColor = async (memberId: string, color: string): Promise<void> => {
+    if (!user) throw new Error('No authenticated user');
+    if (!family) throw new Error('No family found');
+
+    const familyDoc = doc(db, `families/${family.id}`);
+    await updateDoc(familyDoc, {
+      [`members.${memberId}.color`]: color,
+    });
+  };
+
   return {
     family,
     loading,
@@ -313,5 +526,10 @@ export const useFamily = () => {
     getPendingParentRequests,
     getInviteLink,
     shareInvite,
+    addManualMember,
+    findMatchingMember,
+    linkAuthToMember,
+    updateDisplayName,
+    updateMemberColor,
   };
 };
