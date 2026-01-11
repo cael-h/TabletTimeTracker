@@ -50,9 +50,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
     const balanceMap = new Map<string, { member: any; balance: number; unit: 'minutes' | 'points' }>();
 
-    // Initialize all family members with 0 balance
+    // Initialize all family members with 0 balance (including pre-added ones)
     Object.values(family.members).forEach((member) => {
-      if (!member.isPreAdded && member.childId) {
+      if (member.childId) {
         const unit = member.role === 'kid' ? 'minutes' : 'points';
         balanceMap.set(member.id, { member, balance: 0, unit });
       }
@@ -62,7 +62,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     approvedTransactions.forEach((txn) => {
       // Find the member that owns this childId
       const member = Object.values(family.members).find(
-        m => m.childId === txn.childId && !m.isPreAdded
+        m => m.childId === txn.childId
       );
 
       if (member && balanceMap.has(member.id)) {

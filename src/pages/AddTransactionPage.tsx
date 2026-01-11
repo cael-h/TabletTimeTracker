@@ -30,9 +30,9 @@ export const AddTransactionPage: React.FC = () => {
 
   const isParent = isApprovedParent();
 
-  // Get available family members
+  // Get available family members (including pre-added ones)
   const availableMembers = family
-    ? Object.values(family.members).filter(m => !m.isPreAdded && m.childId)
+    ? Object.values(family.members).filter(m => m.childId)
     : [];
 
   // Set default selected member to current user or first available

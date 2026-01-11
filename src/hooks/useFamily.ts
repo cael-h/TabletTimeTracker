@@ -6,6 +6,7 @@ import {
   onSnapshot,
   Timestamp,
   updateDoc,
+  arrayUnion,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { FamilyGroup, FamilyGroupDoc, FamilyMember, FamilyMemberDoc, MemberRole, MemberStatus } from '../types';
@@ -132,20 +133,57 @@ export const useFamily = () => {
     };
   }, [user]);
 
+  // Helper function to create a Child record for tracking transactions
+  const createChildRecord = async (familyId: string, name: string): Promise<string> => {
+    const childId = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+    const settingsDoc = doc(db, `families/${familyId}/settings/config`);
+
+    // Get current settings or create default
+    const settingsSnap = await getDoc(settingsDoc);
+    if (!settingsSnap.exists()) {
+      await setDoc(settingsDoc, {
+        rewardReasons: [],
+        redemptionReasons: [],
+        choreReasons: [],
+        children: [{
+          name: name,
+          createdAt: Timestamp.now(),
+          color: '#6b7280',
+        }]
+      });
+    } else {
+      // Add child to existing array
+      await updateDoc(settingsDoc, {
+        children: arrayUnion({
+          name: name,
+          createdAt: Timestamp.now(),
+          color: '#6b7280',
+        })
+      });
+    }
+
+    return childId;
+  };
+
   // Create a new family group
   const createFamily = async (familyName: string, role: MemberRole): Promise<string> => {
     if (!user) throw new Error('No authenticated user');
 
     const familyCode = await generateUniqueFamilyCode();
+    const displayName = user.displayName || user.email || 'User';
+
+    // Create a child record for transaction tracking
+    const childId = await createChildRecord(familyCode, displayName);
 
     const memberDoc: FamilyMemberDoc = {
-      displayName: user.displayName || user.email || 'User',
+      displayName: displayName,
       emails: user.email ? [user.email] : [],
       alternateNames: [],
       role,
       status: 'approved', // Creator is auto-approved
       joinedAt: Timestamp.now(),
       authUserId: user.uid,
+      childId: childId,
     };
 
     const familyDoc: FamilyGroupDoc = {
@@ -186,14 +224,20 @@ export const useFamily = () => {
       throw new Error('You are already a member of this family');
     }
 
+    const displayName = user.displayName || user.email || 'User';
+
+    // Create a child record for transaction tracking
+    const childId = await createChildRecord(familyCode, displayName);
+
     const memberDoc: FamilyMemberDoc = {
-      displayName: user.displayName || user.email || 'User',
+      displayName: displayName,
       emails: user.email ? [user.email] : [],
       alternateNames: [],
       role,
       status: role === 'parent' ? 'pending' : 'approved', // Parents need approval, kids are auto-approved
       joinedAt: Timestamp.now(),
       authUserId: user.uid,
+      childId: childId,
     };
 
     // Add member to family
@@ -317,6 +361,9 @@ export const useFamily = () => {
     // Generate a unique ID for the pre-added member
     const memberId = `pre_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+    // Create a child record for transaction tracking
+    const childId = await createChildRecord(family.id, name);
+
     const memberDoc: FamilyMemberDoc = {
       displayName: name,
       emails: email ? [email] : [],
@@ -325,6 +372,7 @@ export const useFamily = () => {
       status: 'approved', // Pre-added members are auto-approved
       joinedAt: Timestamp.now(),
       isPreAdded: true,
+      childId: childId,
     };
 
     const familyDoc = doc(db, `families/${family.id}`);
