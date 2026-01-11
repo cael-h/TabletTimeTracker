@@ -9,6 +9,7 @@ import {
 import { db } from '../config/firebase';
 import type { Settings, SettingsDoc, Child, ChildDoc } from '../types';
 import { useAuth } from './useAuth';
+import { useFamily } from './useFamily';
 
 const DEFAULT_REWARD_REASONS = [
   'Brushed Teeth',
@@ -33,15 +34,16 @@ export const useSettings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
+  const { family } = useFamily();
 
   useEffect(() => {
-    if (!user) {
+    if (!user || !family) {
       setSettings(null);
       setLoading(false);
       return;
     }
 
-    const settingsDoc = doc(db, `users/${user.uid}/settings/config`);
+    const settingsDoc = doc(db, `families/${family.id}/settings/config`);
 
     // Initialize settings if they don't exist
     const initializeSettings = async () => {
@@ -89,12 +91,13 @@ export const useSettings = () => {
     );
 
     return () => unsubscribe();
-  }, [user]);
+  }, [user, family]);
 
   const updateSettings = async (updates: Partial<SettingsDoc>) => {
     if (!user) throw new Error('No authenticated user');
+    if (!family) throw new Error('No family found');
 
-    const settingsDoc = doc(db, `users/${user.uid}/settings/config`);
+    const settingsDoc = doc(db, `families/${family.id}/settings/config`);
     await setDoc(settingsDoc, updates, { merge: true });
   };
 
