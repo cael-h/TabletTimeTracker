@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useTransactions } from '../hooks/useTransactions';
+import { useFamily } from '../hooks/useFamily';
 import { useIdentity } from '../contexts/IdentityContext';
 import { useChild } from '../contexts/ChildContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -19,13 +20,18 @@ import {
   Edit,
   Briefcase,
   Palette,
+  Users,
+  Share2,
+  Copy,
+  CheckCircle,
 } from 'lucide-react';
 import type { ThemeMode } from '../types';
 
 export const SettingsPage: React.FC = () => {
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason, addChoreReason, removeChoreReason, updateChildColor } = useSettings();
   const { addTransaction, balance } = useTransactions();
+  const { family, shareInvite, getInviteLink } = useFamily();
   const { identity, setIdentity } = useIdentity();
   const { activeChildId } = useChild();
   const { theme, setTheme } = useTheme();
@@ -37,6 +43,7 @@ export const SettingsPage: React.FC = () => {
   const [showCustomNameInput, setShowCustomNameInput] = useState(false);
   const [customName, setCustomName] = useState('');
   const [resetting, setResetting] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const handleAddRewardReason = async () => {
     if (!newRewardReason.trim()) return;
@@ -87,6 +94,26 @@ export const SettingsPage: React.FC = () => {
   const handleSignOut = async () => {
     if (confirm('Are you sure you want to sign out?')) {
       await signOut();
+    }
+  };
+
+  const handleCopyCode = async () => {
+    if (!family) return;
+    try {
+      await navigator.clipboard.writeText(family.id);
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+      alert('Failed to copy family code');
+    }
+  };
+
+  const handleShareInvite = async () => {
+    try {
+      await shareInvite();
+    } catch (err) {
+      console.error('Failed to share:', err);
     }
   };
 
@@ -208,6 +235,97 @@ export const SettingsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Family Section */}
+      {family && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Users size={20} />
+              <h2 className="text-lg font-semibold">Family</h2>
+            </div>
+          </div>
+
+          {/* Family Name and Code */}
+          <div className="mb-4 p-4 bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-primary-900/20 dark:to-secondary-900/20 rounded-lg border border-primary-200 dark:border-primary-800">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Family Name</div>
+            <div className="text-xl font-bold text-gray-900 dark:text-white mb-3">{family.name}</div>
+
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Family Code</div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 font-mono text-2xl font-bold text-primary-600 dark:text-primary-400 tracking-widest">
+                {family.id}
+              </div>
+              <button
+                onClick={handleCopyCode}
+                className={`p-2 rounded-lg transition-all ${
+                  codeCopied
+                    ? 'bg-green-500 text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600'
+                }`}
+              >
+                {codeCopied ? <CheckCircle size={20} /> : <Copy size={20} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Share Invite Button */}
+          <button
+            onClick={handleShareInvite}
+            className="w-full mb-4 py-3 px-4 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <Share2 size={20} />
+            Invite Family Member
+          </button>
+
+          {/* Family Members List */}
+          <div>
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Family Members ({Object.keys(family.members).length})
+            </div>
+            <div className="space-y-2">
+              {Object.values(family.members).map((member) => (
+                <div
+                  key={member.id}
+                  className={`p-3 rounded-lg border ${
+                    member.id === user?.uid
+                      ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800'
+                      : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-gray-900 dark:text-white">
+                        {member.name}
+                        {member.id === user?.uid && (
+                          <span className="ml-2 text-xs text-primary-600 dark:text-primary-400">(You)</span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400">{member.email}</div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          member.role === 'parent'
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                            : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'
+                        }`}
+                      >
+                        {member.role === 'parent' ? 'Parent' : 'Kid'}
+                      </span>
+                      {member.status === 'pending' && (
+                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Theme Section */}
       <div className="card">

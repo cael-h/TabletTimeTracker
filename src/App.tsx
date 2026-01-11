@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
+import { useFamily } from './hooks/useFamily';
+import { useTransactions } from './hooks/useTransactions';
 import { useIdentity } from './contexts/IdentityContext';
 import { useChild } from './contexts/ChildContext';
 import { AuthPage } from './pages/AuthPage';
+import { FamilySetupPage } from './pages/FamilySetupPage';
 import { IdentitySelectPage } from './pages/IdentitySelectPage';
 import { ChildSelectPage } from './pages/ChildSelectPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AddTransactionPage } from './pages/AddTransactionPage';
+import { ApprovalsPage } from './pages/ApprovalsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { BottomNav } from './components/BottomNav';
@@ -14,10 +18,14 @@ import { WifiOff } from 'lucide-react';
 
 function App() {
   const { user, loading: authLoading } = useAuth();
+  const { family, loading: familyLoading, getPendingParentRequests } = useFamily();
+  const { pendingTransactions } = useTransactions();
   const { identity } = useIdentity();
   const { activeChildId } = useChild();
   const [activeTab, setActiveTab] = useState('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  const pendingCount = (getPendingParentRequests?.()?.length || 0) + (pendingTransactions?.length || 0);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -32,7 +40,7 @@ function App() {
     };
   }, []);
 
-  if (authLoading) {
+  if (authLoading || (user && familyLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -45,6 +53,10 @@ function App() {
 
   if (!user) {
     return <AuthPage />;
+  }
+
+  if (!family) {
+    return <FamilySetupPage />;
   }
 
   if (!identity) {
@@ -61,6 +73,8 @@ function App() {
         return <DashboardPage onNavigate={setActiveTab} />;
       case 'add':
         return <AddTransactionPage />;
+      case 'approvals':
+        return <ApprovalsPage />;
       case 'history':
         return <HistoryPage />;
       case 'settings':
@@ -86,7 +100,7 @@ function App() {
       </main>
 
       {/* Bottom Navigation */}
-      <BottomNav activeTab={activeTab} onNavigate={setActiveTab} />
+      <BottomNav activeTab={activeTab} onNavigate={setActiveTab} pendingCount={pendingCount} />
     </div>
   );
 }

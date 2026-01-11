@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
+import { useFamily } from '../hooks/useFamily';
 import { useIdentity } from '../contexts/IdentityContext';
 import { useChild } from '../contexts/ChildContext';
 import { TrendingUp, TrendingDown, Calendar, Plus, Check, Award, Briefcase } from 'lucide-react';
@@ -18,11 +20,17 @@ export const AddTransactionPage: React.FC = () => {
   const [dateOverride, setDateOverride] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('Success!');
 
+  const { user } = useAuth();
   const { addTransaction } = useTransactions();
   const { settings } = useSettings();
+  const { getCurrentMember, isApprovedParent } = useFamily();
   const { identity } = useIdentity();
   const { activeChildId } = useChild();
+
+  const currentMember = getCurrentMember();
+  const isParent = isApprovedParent();
 
   const reasons =
     category === 'Reward'
@@ -68,29 +76,47 @@ export const AddTransactionPage: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit()) return;
+    if (!canSubmit() || !user) return;
 
     setSubmitting(true);
     try {
       const amount = getAmount();
       const reason = getReason();
+      const finalAmount = category === 'Redemption' ? -amount : amount;
+
+      // Determine if this transaction needs approval
+      // Kids adding time (positive amount) need approval
+      // Kids removing time (negative amount/redemption) don't need approval
+      // Parents always auto-approved
+      let status: 'approved' | 'pending' = 'approved';
+      if (!isParent && finalAmount > 0) {
+        status = 'pending';
+      }
 
       const transaction: TransactionInput = {
-        amount: category === 'Redemption' ? -amount : amount,
+        amount: finalAmount,
         reason,
         category,
         user: identity!,
+        userId: user.uid,
         childId: activeChildId!,
         unit,
         timestamp: dateOverride ? new Date(dateOverride) : undefined,
+        status,
       };
 
       await addTransaction(transaction);
 
       // Show success and reset form
       setSuccess(true);
+      if (status === 'pending') {
+        setSuccessMessage('Sent for approval!');
+      } else {
+        setSuccessMessage('Success!');
+      }
       setTimeout(() => {
         setSuccess(false);
+        setSuccessMessage('Success!');
         setSelectedAmount(null);
         setCustomAmount('');
         setSelectedReason(null);
@@ -295,7 +321,7 @@ export const AddTransactionPage: React.FC = () => {
         {success ? (
           <>
             <Check size={20} />
-            Success!
+            {successMessage}
           </>
         ) : submitting ? (
           'Submitting...'
