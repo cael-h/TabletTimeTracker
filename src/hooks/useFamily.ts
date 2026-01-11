@@ -49,7 +49,57 @@ export const useFamily = () => {
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
 
-  // Listen to the user's family membership
+  // Helper function to create a Child record for tracking transactions
+  const createChildRecord = async (familyId: string, name: string): Promise<string> => {
+    const childId = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+    const settingsDoc = doc(db, `families/${familyId}/settings/config`);
+
+    // Get current settings or create default
+    const settingsSnap = await getDoc(settingsDoc);
+    if (!settingsSnap.exists()) {
+      await setDoc(settingsDoc, {
+        rewardReasons: [],
+        redemptionReasons: [],
+        choreReasons: [],
+        children: [{
+          name: name,
+          createdAt: Timestamp.now(),
+          color: '#6b7280',
+        }]
+      });
+    } else {
+      // Add child to existing array
+      await updateDoc(settingsDoc, {
+        children: arrayUnion({
+          name: name,
+          createdAt: Timestamp.now(),
+          color: '#6b7280',
+        })
+      });
+    }
+
+    return childId;
+  };
+
+  // Helper function to ensure all members have childIds (migration for existing data)
+  const ensureMembersHaveChildIds = async (familyId: string, members: { [userId: string]: FamilyMember }) => {
+    const updates: { [key: string]: string } = {};
+    let needsUpdate = false;
+
+    for (const [memberId, member] of Object.entries(members)) {
+      if (!member.childId) {
+        needsUpdate = true;
+        const childId = await createChildRecord(familyId, member.displayName);
+        updates[`members.${memberId}.childId`] = childId;
+      }
+    }
+
+    if (needsUpdate) {
+      const familyDoc = doc(db, `families/${familyId}`);
+      await updateDoc(familyDoc, updates);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       setFamily(null);
@@ -94,13 +144,18 @@ export const useFamily = () => {
                   };
                 });
 
-                setFamily({
+                const familyData = {
                   id: snapshot.id,
                   name: data.name,
                   createdAt: data.createdAt.toDate(),
                   createdBy: data.createdBy,
                   members,
-                });
+                };
+
+                setFamily(familyData);
+
+                // Ensure all members have childIds (migration for existing data)
+                ensureMembersHaveChildIds(snapshot.id, members).catch(console.error);
               } else {
                 setFamily(null);
               }
@@ -132,38 +187,6 @@ export const useFamily = () => {
       unsubscribePromise.then(unsub => unsub && unsub());
     };
   }, [user]);
-
-  // Helper function to create a Child record for tracking transactions
-  const createChildRecord = async (familyId: string, name: string): Promise<string> => {
-    const childId = name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
-    const settingsDoc = doc(db, `families/${familyId}/settings/config`);
-
-    // Get current settings or create default
-    const settingsSnap = await getDoc(settingsDoc);
-    if (!settingsSnap.exists()) {
-      await setDoc(settingsDoc, {
-        rewardReasons: [],
-        redemptionReasons: [],
-        choreReasons: [],
-        children: [{
-          name: name,
-          createdAt: Timestamp.now(),
-          color: '#6b7280',
-        }]
-      });
-    } else {
-      // Add child to existing array
-      await updateDoc(settingsDoc, {
-        children: arrayUnion({
-          name: name,
-          createdAt: Timestamp.now(),
-          color: '#6b7280',
-        })
-      });
-    }
-
-    return childId;
-  };
 
   // Create a new family group
   const createFamily = async (familyName: string, role: MemberRole): Promise<string> => {
