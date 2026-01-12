@@ -47,6 +47,6 @@
   }
 
   .chip-selected {
-    @apply bg-primary-500 text-white hover:bg-primary-600 dark:hover:bg-primary-600;
+    @apply bg-primary-500 text-white hover:bg-primary-600 dark:hover:bg-primary-600 ring-2 ring-primary-700 dark:ring-primary-300 ring-offset-2 dark:ring-offset-gray-900;
   }
 }
