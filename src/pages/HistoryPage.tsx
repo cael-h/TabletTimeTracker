@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
+import { useFamily } from '../hooks/useFamily';
 import { Plus, Minus, Trash2, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import type { Transaction } from '../types';
@@ -14,6 +15,7 @@ interface GroupedTransactions {
 export const HistoryPage: React.FC = () => {
   const { transactions, deleteTransaction, loading, balance } = useTransactions();
   const { settings } = useSettings();
+  const { family } = useFamily();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Group transactions by day
@@ -63,6 +65,18 @@ export const HistoryPage: React.FC = () => {
   };
 
   const getPersonInfo = (childId: string) => {
+    // First try to find the member in family.members by childId
+    if (family) {
+      const member = Object.values(family.members).find((m) => m.childId === childId);
+      if (member) {
+        return {
+          name: member.displayName,
+          color: member.color || '#6b7280',
+        };
+      }
+    }
+
+    // Fallback to settings.children for backward compatibility
     const person = settings?.children.find((c) => c.id === childId);
     return {
       name: person?.name || 'Unknown',
