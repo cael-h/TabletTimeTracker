@@ -102,6 +102,31 @@ export const useFamily = () => {
     }
   };
 
+  // Helper function to fix parent permissions for members created before permission system
+  const fixParentPermissions = async (familyId: string, createdBy: string, members: { [userId: string]: FamilyMember }) => {
+    const updates: { [key: string]: string } = {};
+    let needsUpdate = false;
+
+    for (const [memberId, member] of Object.entries(members)) {
+      // If this is a parent with 'approved' status but no approvedBy field, and they're not the creator
+      if (
+        member.role === 'parent' &&
+        member.status === 'approved' &&
+        !member.approvedBy &&
+        memberId !== createdBy
+      ) {
+        needsUpdate = true;
+        updates[`members.${memberId}.status`] = 'pending';
+        console.log(`Migrating parent member ${member.displayName} (${memberId}) to pending status`);
+      }
+    }
+
+    if (needsUpdate) {
+      const familyDoc = doc(db, `families/${familyId}`);
+      await updateDoc(familyDoc, updates);
+    }
+  };
+
   // Helper function to ensure all child records have IDs (migration for existing data)
   const ensureChildRecordsHaveIds = async (familyId: string, members: { [userId: string]: FamilyMember }) => {
     const settingsDoc = doc(db, `families/${familyId}/settings/config`);
@@ -213,6 +238,9 @@ export const useFamily = () => {
 
                 // Ensure all child records have IDs (migration for existing data)
                 ensureChildRecordsHaveIds(snapshot.id, members).catch(console.error);
+
+                // Fix parent permissions for members created before permission system (migration)
+                fixParentPermissions(snapshot.id, data.createdBy, members).catch(console.error);
               } else {
                 setFamily(null);
               }

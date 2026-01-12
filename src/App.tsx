@@ -85,6 +85,15 @@ function App() {
 
   // Check if user is a pending parent (needs approval)
   const currentMember = getCurrentMember();
+
+  // Debug logging - remove after testing
+  console.log('Current member info:', {
+    role: currentMember?.role,
+    status: currentMember?.status,
+    displayName: currentMember?.displayName,
+    emails: currentMember?.emails,
+  });
+
   if (currentMember?.role === 'parent' && currentMember?.status === 'pending') {
     return <PendingParentPage />;
   }
