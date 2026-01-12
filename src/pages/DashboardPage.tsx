@@ -37,6 +37,18 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   };
 
   const getPersonInfo = (childId: string) => {
+    // First try to find the member in family.members by childId
+    if (family) {
+      const member = Object.values(family.members).find((m) => m.childId === childId);
+      if (member) {
+        return {
+          name: member.displayName,
+          color: member.color || '#6b7280',
+        };
+      }
+    }
+
+    // Fallback to settings.children for backward compatibility
     const person = settings?.children.find((c) => c.id === childId);
     return {
       name: person?.name || 'Unknown',
