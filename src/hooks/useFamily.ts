@@ -62,6 +62,7 @@ export const useFamily = () => {
         redemptionReasons: [],
         choreReasons: [],
         children: [{
+          id: childId,
           name: name,
           createdAt: Timestamp.now(),
           color: '#6b7280',
@@ -71,6 +72,7 @@ export const useFamily = () => {
       // Add child to existing array
       await updateDoc(settingsDoc, {
         children: arrayUnion({
+          id: childId,
           name: name,
           createdAt: Timestamp.now(),
           color: '#6b7280',
@@ -98,6 +100,57 @@ export const useFamily = () => {
       const familyDoc = doc(db, `families/${familyId}`);
       await updateDoc(familyDoc, updates);
     }
+  };
+
+  // Helper function to ensure all child records have IDs (migration for existing data)
+  const ensureChildRecordsHaveIds = async (familyId: string, members: { [userId: string]: FamilyMember }) => {
+    const settingsDoc = doc(db, `families/${familyId}/settings/config`);
+    const settingsSnap = await getDoc(settingsDoc);
+
+    if (!settingsSnap.exists()) return;
+
+    const settings = settingsSnap.data();
+    const children = settings.children || [];
+
+    // Check if any children are missing IDs
+    const needsUpdate = children.some((child: any) => !child.id);
+    if (!needsUpdate) return;
+
+    // Create a map of childId to member displayName
+    const childIdToName = new Map<string, string>();
+    for (const member of Object.values(members)) {
+      if (member.childId) {
+        childIdToName.set(member.childId, member.displayName);
+      }
+    }
+
+    // Update children to add missing IDs
+    const updatedChildren = children.map((child: any) => {
+      // If child already has an ID, keep it as is
+      if (child.id) return child;
+
+      // Find the matching childId by name
+      for (const [childId, name] of childIdToName.entries()) {
+        if (child.name === name) {
+          return {
+            ...child,
+            id: childId,
+          };
+        }
+      }
+
+      // If no match found, generate a new ID
+      const newChildId = child.name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+      return {
+        ...child,
+        id: newChildId,
+      };
+    });
+
+    // Update the settings document with the fixed children array
+    await updateDoc(settingsDoc, {
+      children: updatedChildren,
+    });
   };
 
   useEffect(() => {
@@ -156,6 +209,9 @@ export const useFamily = () => {
 
                 // Ensure all members have childIds (migration for existing data)
                 ensureMembersHaveChildIds(snapshot.id, members).catch(console.error);
+
+                // Ensure all child records have IDs (migration for existing data)
+                ensureChildRecordsHaveIds(snapshot.id, members).catch(console.error);
               } else {
                 setFamily(null);
               }
