@@ -190,6 +190,7 @@ export const useFamily = () => {
                     joinedAt: memberDoc.joinedAt.toDate(),
                     approvedBy: memberDoc.approvedBy,
                     approvedAt: memberDoc.approvedAt?.toDate(),
+                    requestedAt: memberDoc.requestedAt?.toDate(),
                     childId: memberDoc.childId,
                     isPreAdded: memberDoc.isPreAdded,
                     authUserId: memberDoc.authUserId,
@@ -568,6 +569,22 @@ export const useFamily = () => {
     });
   };
 
+  // Request permission to join as a parent (updates requestedAt timestamp)
+  const requestPermission = async (): Promise<void> => {
+    if (!user) throw new Error('No authenticated user');
+    if (!family) throw new Error('No family found');
+
+    const currentMember = getCurrentMember();
+    if (!currentMember) throw new Error('Member not found');
+    if (currentMember.role !== 'parent') throw new Error('Only pending parents can request permission');
+    if (currentMember.status === 'approved') throw new Error('You are already approved');
+
+    const familyDoc = doc(db, `families/${family.id}`);
+    await updateDoc(familyDoc, {
+      [`members.${user.uid}.requestedAt`]: Timestamp.now(),
+    });
+  };
+
   return {
     family,
     loading,
@@ -587,5 +604,6 @@ export const useFamily = () => {
     linkAuthToMember,
     updateDisplayName,
     updateMemberColor,
+    requestPermission,
   };
 };

@@ -9,6 +9,7 @@ import { FamilySetupPage } from './pages/FamilySetupPage';
 import { MemberMatchPage } from './pages/MemberMatchPage';
 import { IdentitySelectPage } from './pages/IdentitySelectPage';
 import { ChildSelectPage } from './pages/ChildSelectPage';
+import { PendingParentPage } from './pages/PendingParentPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AddTransactionPage } from './pages/AddTransactionPage';
 import { ApprovalsPage } from './pages/ApprovalsPage';
@@ -19,7 +20,7 @@ import { WifiOff } from 'lucide-react';
 
 function App() {
   const { user, loading: authLoading } = useAuth();
-  const { family, loading: familyLoading, getPendingParentRequests } = useFamily();
+  const { family, loading: familyLoading, getPendingParentRequests, getCurrentMember } = useFamily();
   const { pendingTransactions } = useTransactions();
   const { identity } = useIdentity();
   const { activeChildId } = useChild();
@@ -80,6 +81,12 @@ function App() {
 
   if (!identity) {
     return <IdentitySelectPage />;
+  }
+
+  // Check if user is a pending parent (needs approval)
+  const currentMember = getCurrentMember();
+  if (currentMember?.role === 'parent' && currentMember?.status === 'pending') {
+    return <PendingParentPage />;
   }
 
   if (!activeChildId) {

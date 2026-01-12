@@ -60,6 +60,7 @@ export interface FamilyMember {
   joinedAt: Date;
   approvedBy?: string; // userId of parent who approved (for parent requests)
   approvedAt?: Date;
+  requestedAt?: Date; // When a pending parent last requested approval
   childId?: string; // If role is 'kid', links to Child record
   isPreAdded?: boolean; // Whether this member was manually added before authentication
   authUserId?: string; // The actual Firebase Auth user ID (only set after authentication)
@@ -75,6 +76,7 @@ export interface FamilyMemberDoc {
   joinedAt: any; // Firestore Timestamp
   approvedBy?: string;
   approvedAt?: any; // Firestore Timestamp
+  requestedAt?: any; // Firestore Timestamp - when pending parent last requested approval
   childId?: string;
   isPreAdded?: boolean;
   authUserId?: string;

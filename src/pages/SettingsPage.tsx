@@ -24,6 +24,8 @@ import {
   Share2,
   Copy,
   CheckCircle,
+  UserCheck,
+  AlertCircle,
 } from 'lucide-react';
 import type { ThemeMode } from '../types';
 
@@ -31,7 +33,7 @@ export const SettingsPage: React.FC = () => {
   const { signOut, user } = useAuth();
   const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason, addChoreReason, removeChoreReason } = useSettings();
   const { addTransaction, balance } = useTransactions();
-  const { family, shareInvite, addManualMember, isApprovedParent, updateDisplayName, updateMemberColor } = useFamily();
+  const { family, shareInvite, addManualMember, isApprovedParent, updateDisplayName, updateMemberColor, getCurrentMember, requestPermission } = useFamily();
   const { identity, setIdentity } = useIdentity();
   const { activeChildId } = useChild();
   const { theme, setTheme } = useTheme();
@@ -51,6 +53,8 @@ export const SettingsPage: React.FC = () => {
   const [addingMember, setAddingMember] = useState(false);
   const [showEditDisplayName, setShowEditDisplayName] = useState(false);
   const [editDisplayName, setEditDisplayName] = useState('');
+  const [requestingPermission, setRequestingPermission] = useState(false);
+  const [permissionRequested, setPermissionRequested] = useState(false);
 
   const handleAddRewardReason = async () => {
     if (!newRewardReason.trim()) return;
@@ -197,6 +201,20 @@ export const SettingsPage: React.FC = () => {
     } catch (error) {
       console.error('Error updating member color:', error);
       alert(error instanceof Error ? error.message : 'Failed to update color');
+    }
+  };
+
+  const handleRequestPermission = async () => {
+    setRequestingPermission(true);
+    try {
+      await requestPermission();
+      setPermissionRequested(true);
+      alert('Permission request sent! An existing parent will be notified to approve your account.');
+    } catch (error) {
+      console.error('Error requesting permission:', error);
+      alert(error instanceof Error ? error.message : 'Failed to request permission');
+    } finally {
+      setRequestingPermission(false);
     }
   };
 
@@ -372,6 +390,50 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Parent Permission Request Section */}
+      {getCurrentMember()?.role === 'parent' && getCurrentMember()?.status === 'pending' && (
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle size={20} className="text-amber-600 dark:text-amber-400" />
+            <h2 className="text-lg font-semibold">Parent Approval Needed</h2>
+          </div>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-700 dark:text-gray-300">
+              Your account is pending approval from an existing parent. Request permission to gain full access to family settings.
+            </p>
+            {(permissionRequested || getCurrentMember()?.requestedAt) ? (
+              <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-center gap-2 mb-1">
+                  <UserCheck size={18} className="text-green-600 dark:text-green-400" />
+                  <span className="font-medium text-green-900 dark:text-green-200">Permission Requested</span>
+                </div>
+                <p className="text-sm text-green-800 dark:text-green-300">
+                  An existing parent has been notified. You'll gain access once approved.
+                </p>
+              </div>
+            ) : (
+              <button
+                onClick={handleRequestPermission}
+                disabled={requestingPermission}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                <UserCheck size={18} />
+                {requestingPermission ? 'Sending Request...' : 'Request Permission to Join as Parent'}
+              </button>
+            )}
+            {getCurrentMember()?.requestedAt && !permissionRequested && (
+              <button
+                onClick={handleRequestPermission}
+                disabled={requestingPermission}
+                className="btn-secondary w-full text-sm"
+              >
+                {requestingPermission ? 'Sending...' : 'Send Reminder'}
+              </button>
+            )}
+          </div>
         </div>
       )}
 

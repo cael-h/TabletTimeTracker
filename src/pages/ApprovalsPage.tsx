@@ -109,7 +109,7 @@ export const ApprovalsPage = () => {
                   className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div>
+                    <div className="flex-1">
                       <h3 className="font-semibold text-gray-900 dark:text-white">
                         {member.displayName}
                       </h3>
@@ -119,7 +119,12 @@ export const ApprovalsPage = () => {
                         </p>
                       )}
                       <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        Requested {formatTime(member.joinedAt)}
+                        Joined {formatTime(member.joinedAt)}
+                        {member.requestedAt && (
+                          <span className="ml-2 text-amber-600 dark:text-amber-400 font-medium">
+                            • Requested {formatTime(member.requestedAt)}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-full">
