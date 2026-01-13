@@ -7,6 +7,7 @@ import {
   Timestamp,
   updateDoc,
   arrayUnion,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { FamilyGroup, FamilyGroupDoc, FamilyMember, FamilyMemberDoc, MemberRole, MemberStatus } from '../types';
@@ -299,14 +300,75 @@ export const useFamily = () => {
 
     const familyData = snapshot.data() as FamilyGroupDoc;
 
-    // Check if user is already a member
-    if (familyData.members[user.uid]) {
-      throw new Error('You are already a member of this family');
+    // Check if user already has an authenticated (non-pre-added) member record
+    const existingMember = familyData.members[user.uid];
+    if (existingMember && !existingMember.isPreAdded) {
+      // User already has a member record - check status
+      if (existingMember.status === 'approved') {
+        throw new Error('You are already a member of this family');
+      }
+      // If pending or denied, we'll allow re-joining by checking for pre-added matches
+      // or updating their existing record
     }
 
     const displayName = user.displayName || user.email || 'User';
 
-    // Create a child record for transaction tracking
+    // Check for pre-added member that matches this user
+    const normalizedUserName = displayName.toLowerCase().trim();
+    const normalizedUserEmail = user.email?.toLowerCase().trim();
+
+    let preAddedMatch: { id: string; member: FamilyMemberDoc } | null = null;
+
+    for (const [memberId, member] of Object.entries(familyData.members)) {
+      // Skip if this member is already authenticated
+      if (!member.isPreAdded) continue;
+
+      // Check if name matches
+      const displayNameMatch = member.displayName.toLowerCase().trim() === normalizedUserName;
+      const alternateNameMatch = member.alternateNames?.some(
+        name => name.toLowerCase().trim() === normalizedUserName
+      );
+
+      // Check if email matches
+      const emailMatch = normalizedUserEmail && member.emails.some(
+        email => email.toLowerCase().trim() === normalizedUserEmail
+      );
+
+      if (displayNameMatch || alternateNameMatch || emailMatch) {
+        preAddedMatch = { id: memberId, member };
+        break;
+      }
+    }
+
+    // If we found a pre-added match, delete any existing pending/denied member
+    // and let MemberMatchPage handle the linking
+    if (preAddedMatch) {
+      // Remove the old pending/denied member if it exists
+      if (existingMember && !existingMember.isPreAdded) {
+        await updateDoc(familyDoc, {
+          [`members.${user.uid}`]: deleteField(),
+        });
+      }
+
+      // Just update the user document - MemberMatchPage will handle the rest
+      await setDoc(doc(db, `users/${user.uid}`), {
+        familyId: familyCode,
+      }, { merge: true });
+      return;
+    }
+
+    // No pre-added match found
+    // If they have a pending/denied member, update it with the new role
+    if (existingMember && !existingMember.isPreAdded) {
+      await updateDoc(familyDoc, {
+        [`members.${user.uid}.role`]: role,
+        [`members.${user.uid}.status`]: role === 'parent' ? 'pending' : 'approved',
+        [`members.${user.uid}.joinedAt`]: Timestamp.now(),
+      });
+      return;
+    }
+
+    // Create a new member record
     const childId = await createChildRecord(familyCode, displayName);
 
     const memberDoc: FamilyMemberDoc = {
@@ -585,6 +647,38 @@ export const useFamily = () => {
     });
   };
 
+  // Create a new member in the current family (used when user denies a pre-added match)
+  const createMemberInCurrentFamily = async (role: MemberRole): Promise<void> => {
+    if (!user) throw new Error('No authenticated user');
+    if (!family) throw new Error('No family found');
+
+    // Check if user already has a member record
+    if (family.members[user.uid]) {
+      throw new Error('You already have a member record in this family');
+    }
+
+    const displayName = user.displayName || user.email || 'User';
+
+    // Create a child record for transaction tracking
+    const childId = await createChildRecord(family.id, displayName);
+
+    const memberDoc: FamilyMemberDoc = {
+      displayName: displayName,
+      emails: user.email ? [user.email] : [],
+      alternateNames: [],
+      role,
+      status: role === 'parent' ? 'pending' : 'approved', // Parents need approval, kids are auto-approved
+      joinedAt: Timestamp.now(),
+      authUserId: user.uid,
+      childId: childId,
+    };
+
+    const familyDoc = doc(db, `families/${family.id}`);
+    await updateDoc(familyDoc, {
+      [`members.${user.uid}`]: memberDoc,
+    });
+  };
+
   return {
     family,
     loading,
@@ -602,6 +696,7 @@ export const useFamily = () => {
     addManualMember,
     findMatchingMember,
     linkAuthToMember,
+    createMemberInCurrentFamily,
     updateDisplayName,
     updateMemberColor,
     requestPermission,

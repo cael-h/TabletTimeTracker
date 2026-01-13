@@ -63,6 +63,8 @@ export const FamilySetupPage = () => {
     setError('');
 
     try {
+      // Store the selected role in localStorage for potential use if match is denied
+      localStorage.setItem('selectedRole', role);
       await joinFamily(familyCode.toUpperCase(), role);
       console.log('Joined family:', familyCode);
       // The useFamily hook will automatically update and the app will navigate forward
