@@ -10,7 +10,7 @@ interface MemberMatchPageProps {
 
 export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled }) => {
   const { user } = useAuth();
-  const { family, findMatchingMember, linkAuthToMember } = useFamily();
+  const { family, findMatchingMember, linkAuthToMember, createMemberInCurrentFamily } = useFamily();
   const [matchedMember, setMatchedMember] = useState<FamilyMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
@@ -47,6 +47,7 @@ export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled
     try {
       const userName = user.displayName || user.email?.split('@')[0] || 'User';
       await linkAuthToMember(matchedMember.id, userName, user.email || null);
+      localStorage.removeItem('selectedRole'); // Clean up
       onMatchHandled();
     } catch (error) {
       console.error('Error linking to member:', error);
@@ -55,9 +56,23 @@ export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled
     }
   };
 
-  const handleDenyMatch = () => {
-    // User denied the match, proceed with normal flow
-    onMatchHandled();
+  const handleDenyMatch = async () => {
+    if (!matchedMember) return;
+
+    setLinking(true);
+    try {
+      // Use the role the user selected, or fall back to the matched member's role
+      const selectedRole = (localStorage.getItem('selectedRole') as 'parent' | 'kid') || matchedMember.role;
+      localStorage.removeItem('selectedRole'); // Clean up
+
+      // Create a new member with the selected role
+      await createMemberInCurrentFamily(selectedRole);
+      onMatchHandled();
+    } catch (error) {
+      console.error('Error creating new member:', error);
+      alert(error instanceof Error ? error.message : 'Failed to create new member');
+      setLinking(false);
+    }
   };
 
   if (loading) {

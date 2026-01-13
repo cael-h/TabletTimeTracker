@@ -306,6 +306,43 @@ export const useFamily = () => {
 
     const displayName = user.displayName || user.email || 'User';
 
+    // Check for pre-added member that matches this user
+    const normalizedUserName = displayName.toLowerCase().trim();
+    const normalizedUserEmail = user.email?.toLowerCase().trim();
+
+    let preAddedMatch: { id: string; member: FamilyMemberDoc } | null = null;
+
+    for (const [memberId, member] of Object.entries(familyData.members)) {
+      // Skip if this member is already authenticated
+      if (!member.isPreAdded) continue;
+
+      // Check if name matches
+      const displayNameMatch = member.displayName.toLowerCase().trim() === normalizedUserName;
+      const alternateNameMatch = member.alternateNames?.some(
+        name => name.toLowerCase().trim() === normalizedUserName
+      );
+
+      // Check if email matches
+      const emailMatch = normalizedUserEmail && member.emails.some(
+        email => email.toLowerCase().trim() === normalizedUserEmail
+      );
+
+      if (displayNameMatch || alternateNameMatch || emailMatch) {
+        preAddedMatch = { id: memberId, member };
+        break;
+      }
+    }
+
+    // If we found a pre-added match, just update the user document
+    // The MemberMatchPage will handle the actual linking
+    if (preAddedMatch) {
+      await setDoc(doc(db, `users/${user.uid}`), {
+        familyId: familyCode,
+      }, { merge: true });
+      return;
+    }
+
+    // No pre-added match found, create a new member record
     // Create a child record for transaction tracking
     const childId = await createChildRecord(familyCode, displayName);
 
@@ -585,6 +622,38 @@ export const useFamily = () => {
     });
   };
 
+  // Create a new member in the current family (used when user denies a pre-added match)
+  const createMemberInCurrentFamily = async (role: MemberRole): Promise<void> => {
+    if (!user) throw new Error('No authenticated user');
+    if (!family) throw new Error('No family found');
+
+    // Check if user already has a member record
+    if (family.members[user.uid]) {
+      throw new Error('You already have a member record in this family');
+    }
+
+    const displayName = user.displayName || user.email || 'User';
+
+    // Create a child record for transaction tracking
+    const childId = await createChildRecord(family.id, displayName);
+
+    const memberDoc: FamilyMemberDoc = {
+      displayName: displayName,
+      emails: user.email ? [user.email] : [],
+      alternateNames: [],
+      role,
+      status: role === 'parent' ? 'pending' : 'approved', // Parents need approval, kids are auto-approved
+      joinedAt: Timestamp.now(),
+      authUserId: user.uid,
+      childId: childId,
+    };
+
+    const familyDoc = doc(db, `families/${family.id}`);
+    await updateDoc(familyDoc, {
+      [`members.${user.uid}`]: memberDoc,
+    });
+  };
+
   return {
     family,
     loading,
@@ -602,6 +671,7 @@ export const useFamily = () => {
     addManualMember,
     findMatchingMember,
     linkAuthToMember,
+    createMemberInCurrentFamily,
     updateDisplayName,
     updateMemberColor,
     requestPermission,
