@@ -7,6 +7,7 @@ import {
   Timestamp,
   updateDoc,
   arrayUnion,
+  deleteField,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import type { FamilyGroup, FamilyGroupDoc, FamilyMember, FamilyMemberDoc, MemberRole, MemberStatus } from '../types';
@@ -299,9 +300,15 @@ export const useFamily = () => {
 
     const familyData = snapshot.data() as FamilyGroupDoc;
 
-    // Check if user is already a member
-    if (familyData.members[user.uid]) {
-      throw new Error('You are already a member of this family');
+    // Check if user already has an authenticated (non-pre-added) member record
+    const existingMember = familyData.members[user.uid];
+    if (existingMember && !existingMember.isPreAdded) {
+      // User already has a member record - check status
+      if (existingMember.status === 'approved') {
+        throw new Error('You are already a member of this family');
+      }
+      // If pending or denied, we'll allow re-joining by checking for pre-added matches
+      // or updating their existing record
     }
 
     const displayName = user.displayName || user.email || 'User';
@@ -333,17 +340,35 @@ export const useFamily = () => {
       }
     }
 
-    // If we found a pre-added match, just update the user document
-    // The MemberMatchPage will handle the actual linking
+    // If we found a pre-added match, delete any existing pending/denied member
+    // and let MemberMatchPage handle the linking
     if (preAddedMatch) {
+      // Remove the old pending/denied member if it exists
+      if (existingMember && !existingMember.isPreAdded) {
+        await updateDoc(familyDoc, {
+          [`members.${user.uid}`]: deleteField(),
+        });
+      }
+
+      // Just update the user document - MemberMatchPage will handle the rest
       await setDoc(doc(db, `users/${user.uid}`), {
         familyId: familyCode,
       }, { merge: true });
       return;
     }
 
-    // No pre-added match found, create a new member record
-    // Create a child record for transaction tracking
+    // No pre-added match found
+    // If they have a pending/denied member, update it with the new role
+    if (existingMember && !existingMember.isPreAdded) {
+      await updateDoc(familyDoc, {
+        [`members.${user.uid}.role`]: role,
+        [`members.${user.uid}.status`]: role === 'parent' ? 'pending' : 'approved',
+        [`members.${user.uid}.joinedAt`]: Timestamp.now(),
+      });
+      return;
+    }
+
+    // Create a new member record
     const childId = await createChildRecord(familyCode, displayName);
 
     const memberDoc: FamilyMemberDoc = {
