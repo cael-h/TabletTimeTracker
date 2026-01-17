@@ -7,7 +7,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { Settings, SettingsDoc, Child, ChildDoc } from '../types';
+import type { Settings, SettingsDoc, Child } from '../types';
 import { useAuth } from './useAuth';
 import { useFamily } from './useFamily';
 
@@ -66,10 +66,11 @@ export const useSettings = () => {
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data() as SettingsDoc;
-          const children: Child[] = (data.children || []).map((childDoc) => ({
-            id: childDoc.name.toLowerCase().replace(/\s+/g, '-'),
+          const children: Child[] = (data.children || []).map((childDoc: any) => ({
+            // Use stored ID if available, otherwise generate from name (for backward compatibility)
+            id: childDoc.id || childDoc.name.toLowerCase().replace(/\s+/g, '-'),
             name: childDoc.name,
-            createdAt: childDoc.createdAt.toDate(),
+            createdAt: childDoc.createdAt?.toDate() || new Date(),
             color: childDoc.color,
           }));
           setSettings({
@@ -139,12 +140,16 @@ export const useSettings = () => {
 
   const addChild = async (childName: string, color?: string) => {
     if (!settings) return;
-    const newChildDoc: ChildDoc = {
+    // Generate a unique ID for the new child
+    const childId = childName.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now();
+    const newChildDoc = {
+      id: childId,
       name: childName,
       createdAt: Timestamp.now(),
       color,
     };
     const newChildren = [...(settings.children || []).map(c => ({
+      id: c.id,
       name: c.name,
       createdAt: Timestamp.fromDate(c.createdAt),
       color: c.color,
@@ -157,6 +162,7 @@ export const useSettings = () => {
     const newChildren = settings.children
       .filter((c) => c.id !== childId)
       .map(c => ({
+        id: c.id,
         name: c.name,
         createdAt: Timestamp.fromDate(c.createdAt),
         color: c.color,
@@ -166,19 +172,12 @@ export const useSettings = () => {
 
   const updateChildColor = async (childId: string, color: string) => {
     if (!settings) return;
-    const newChildren = settings.children.map(c =>
-      c.id === childId
-        ? {
-            name: c.name,
-            createdAt: Timestamp.fromDate(c.createdAt),
-            color,
-          }
-        : {
-            name: c.name,
-            createdAt: Timestamp.fromDate(c.createdAt),
-            color: c.color,
-          }
-    );
+    const newChildren = settings.children.map(c => ({
+      id: c.id,
+      name: c.name,
+      createdAt: Timestamp.fromDate(c.createdAt),
+      color: c.id === childId ? color : c.color,
+    }));
     await updateSettings({ children: newChildren });
   };
 

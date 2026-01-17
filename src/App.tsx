@@ -22,14 +22,20 @@ function App() {
   const { user, loading: authLoading } = useAuth();
   const { family, loading: familyLoading, getPendingParentRequests, getCurrentMember } = useFamily();
   const { pendingTransactions } = useTransactions();
-  const { identity } = useIdentity();
-  const { activeChildId } = useChild();
+  const { identity, syncFromMember: syncIdentityFromMember } = useIdentity();
+  const { activeChildId, syncFromMember: syncChildFromMember } = useChild();
   const [activeTab, setActiveTab] = useState('home');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [matchHandled, setMatchHandled] = useState(false);
 
   const pendingCount = (getPendingParentRequests?.()?.length || 0) + (pendingTransactions?.length || 0);
 
+  // Check if user has a linked member (computed outside of conditionals for hooks)
+  const userMember = (user && family) ? Object.values(family.members).find(
+    m => m.authUserId === user.uid && !m.isPreAdded
+  ) : null;
+
+  // Online/offline status effect
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
@@ -43,6 +49,27 @@ function App() {
     };
   }, []);
 
+  // Update matchHandled when user is already linked (avoiding setState during render)
+  useEffect(() => {
+    if (user && family && userMember && !matchHandled) {
+      setMatchHandled(true);
+    }
+  }, [user, family, userMember, matchHandled]);
+
+  // Auto-sync identity and childId from member data
+  useEffect(() => {
+    if (userMember) {
+      // Sync identity from member's displayName
+      syncIdentityFromMember(userMember.displayName);
+
+      // For kids, auto-sync their childId so they don't need to select
+      if (userMember.role === 'kid' && userMember.childId) {
+        syncChildFromMember(userMember.childId);
+      }
+    }
+  }, [userMember, syncIdentityFromMember, syncChildFromMember]);
+
+  // Loading state
   if (authLoading || (user && familyLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -62,21 +89,9 @@ function App() {
     return <FamilySetupPage />;
   }
 
-  // Check if user needs to be matched with a pre-added member
-  if (!matchHandled && family) {
-    const userMember = Object.values(family.members).find(
-      m => m.authUserId === user.uid && !m.isPreAdded
-    );
-
-    // If user doesn't have a linked member yet, show match page
-    if (!userMember) {
-      return <MemberMatchPage onMatchHandled={() => setMatchHandled(true)} />;
-    } else {
-      // User is already linked, mark as handled
-      if (!matchHandled) {
-        setMatchHandled(true);
-      }
-    }
+  // If user doesn't have a linked member yet, show match page
+  if (!matchHandled && !userMember) {
+    return <MemberMatchPage onMatchHandled={() => setMatchHandled(true)} />;
   }
 
   if (!identity) {

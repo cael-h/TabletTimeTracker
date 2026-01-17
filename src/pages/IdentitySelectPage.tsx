@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
 import { useIdentity } from '../contexts/IdentityContext';
-import { Users, Edit } from 'lucide-react';
+import { useFamily } from '../hooks/useFamily';
+import { Users, Edit, UserCheck } from 'lucide-react';
 
 export const IdentitySelectPage: React.FC = () => {
   const { setIdentity } = useIdentity();
+  const { family, getCurrentMember } = useFamily();
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customName, setCustomName] = useState('');
+
+  const currentMember = getCurrentMember();
+
+  // Get parent members from family to show as options
+  const parentMembers = family
+    ? Object.values(family.members).filter(m => m.role === 'parent' && m.status === 'approved')
+    : [];
 
   const handleSelectIdentity = (identity: string) => {
     setIdentity(identity);
@@ -72,31 +81,61 @@ export const IdentitySelectPage: React.FC = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full mb-4">
               <Users size={32} className="text-primary-600 dark:text-primary-400" />
             </div>
-            <h1 className="text-3xl font-bold mb-2">Who are you?</h1>
+            <h1 className="text-3xl font-bold mb-2">Confirm Your Name</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Select your identity to continue
+              Select how you want to appear when logging time
             </p>
           </div>
 
           <div className="space-y-3">
-            <button
-              onClick={() => handleSelectIdentity('Mom')}
-              className="w-full btn-primary text-xl py-6"
-            >
-              👩 Mom
-            </button>
-            <button
-              onClick={() => handleSelectIdentity('Dad')}
-              className="w-full btn-primary text-xl py-6"
-            >
-              👨 Dad
-            </button>
+            {/* Show current member's displayName as primary option */}
+            {currentMember && (
+              <button
+                onClick={() => handleSelectIdentity(currentMember.displayName)}
+                className="w-full btn-primary text-xl py-6 flex items-center justify-center gap-2"
+              >
+                <UserCheck size={24} />
+                {currentMember.displayName}
+              </button>
+            )}
+
+            {/* Show other parent members as options */}
+            {parentMembers
+              .filter(m => m.id !== currentMember?.id)
+              .map(member => (
+                <button
+                  key={member.id}
+                  onClick={() => handleSelectIdentity(member.displayName)}
+                  className="w-full btn-secondary text-lg py-5"
+                >
+                  {member.displayName}
+                </button>
+              ))}
+
+            {/* Quick options if no family members yet */}
+            {parentMembers.length === 0 && !currentMember && (
+              <>
+                <button
+                  onClick={() => handleSelectIdentity('Mom')}
+                  className="w-full btn-primary text-xl py-6"
+                >
+                  Mom
+                </button>
+                <button
+                  onClick={() => handleSelectIdentity('Dad')}
+                  className="w-full btn-primary text-xl py-6"
+                >
+                  Dad
+                </button>
+              </>
+            )}
+
             <button
               onClick={() => setShowCustomInput(true)}
               className="w-full btn-secondary text-lg py-5 flex items-center justify-center gap-2"
             >
               <Edit size={20} />
-              Type Name
+              Use Different Name
             </button>
           </div>
 

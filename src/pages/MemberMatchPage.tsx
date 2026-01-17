@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useFamily } from '../hooks/useFamily';
+import { useChild } from '../contexts/ChildContext';
 import { UserCheck, UserX, Loader2 } from 'lucide-react';
 import type { FamilyMember } from '../types';
 
@@ -11,9 +12,12 @@ interface MemberMatchPageProps {
 export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled }) => {
   const { user } = useAuth();
   const { family, findMatchingMember, linkAuthToMember, createMemberInCurrentFamily } = useFamily();
+  const { setActiveChildId } = useChild();
   const [matchedMember, setMatchedMember] = useState<FamilyMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
+  const [shouldCallHandled, setShouldCallHandled] = useState(false);
+  const [noMatchFound, setNoMatchFound] = useState(false);
 
   useEffect(() => {
     if (!user || !family) {
@@ -27,8 +31,9 @@ export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled
     );
 
     if (existingMember) {
-      // User is already linked, no need to show this page
-      onMatchHandled();
+      // User is already linked, schedule callback for after render
+      setShouldCallHandled(true);
+      setLoading(false);
       return;
     }
 
@@ -36,9 +41,21 @@ export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled
     const userName = user.displayName || user.email?.split('@')[0] || 'User';
     const match = findMatchingMember(userName, user.email || null);
 
+    if (!match) {
+      // No match found, schedule callback for after render
+      setNoMatchFound(true);
+    }
+
     setMatchedMember(match);
     setLoading(false);
-  }, [user, family, findMatchingMember, onMatchHandled]);
+  }, [user, family, findMatchingMember]);
+
+  // Handle callbacks after render (avoiding setState during render)
+  useEffect(() => {
+    if (shouldCallHandled || noMatchFound) {
+      onMatchHandled();
+    }
+  }, [shouldCallHandled, noMatchFound, onMatchHandled]);
 
   const handleConfirmMatch = async () => {
     if (!user || !matchedMember) return;
@@ -46,8 +63,14 @@ export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled
     setLinking(true);
     try {
       const userName = user.displayName || user.email?.split('@')[0] || 'User';
-      await linkAuthToMember(matchedMember.id, userName, user.email || null);
+      const childId = await linkAuthToMember(matchedMember.id, userName, user.email || null);
       localStorage.removeItem('selectedRole'); // Clean up
+
+      // Auto-set the activeChildId if the linked member has one
+      if (childId) {
+        setActiveChildId(childId);
+      }
+
       onMatchHandled();
     } catch (error) {
       console.error('Error linking to member:', error);
@@ -86,10 +109,16 @@ export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled
     );
   }
 
-  if (!matchedMember) {
-    // No match found, continue with normal flow
-    onMatchHandled();
-    return null;
+  // If no match found or already handled, show loading while useEffect triggers callback
+  if (!matchedMember || noMatchFound || shouldCallHandled) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-primary-50 to-secondary-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center">
+          <Loader2 size={48} className="animate-spin mx-auto mb-4 text-primary-500" />
+          <p className="text-gray-600 dark:text-gray-400">Setting up your account...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
