@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useTransactions } from '../hooks/useTransactions';
 import { useIdentity } from '../contexts/IdentityContext';
@@ -23,6 +24,7 @@ type TimerMode = 'face' | 'digital';
 type TimerState = 'idle' | 'running' | 'paused' | 'finished';
 
 export const UsagePage: React.FC = () => {
+  const { user } = useAuth();
   const { settings } = useSettings();
   const { addTransaction, getBalance } = useTransactions();
   const { identity } = useIdentity();
@@ -203,18 +205,20 @@ export const UsagePage: React.FC = () => {
   const handleStop = async () => {
     stopAlarm();
 
-    if (elapsedMs > 0 && selectedChild) {
-      // Calculate minutes used (round up to nearest minute for fairness)
+    if (elapsedMs > 0 && selectedChild && user) {
+      // Calculate minutes actually used (round up to nearest minute)
       const minutesUsed = Math.ceil(elapsedMs / 60000);
 
       if (minutesUsed > 0) {
         try {
           await addTransaction({
             childId: selectedChild.id,
-            type: 'redeem',
-            amount: minutesUsed,
+            amount: -minutesUsed,
             reason: 'Tablet Time',
-            loggedBy: identity || 'Timer',
+            category: 'Redemption',
+            user: identity || 'Timer',
+            userId: user.uid,
+            unit: 'minutes',
           });
         } catch (error) {
           console.error('Error recording usage:', error);

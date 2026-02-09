@@ -119,6 +119,13 @@ export const useTransactions = () => {
   // Calculate balance from approved transactions only
   const balance = approvedTransactions.reduce((sum, txn) => sum + txn.amount, 0);
 
+  // Calculate balance for a specific child
+  const getBalance = (childId: string) => {
+    return approvedTransactions
+      .filter((txn) => txn.childId === childId)
+      .reduce((sum, txn) => sum + txn.amount, 0);
+  };
+
   return {
     transactions,
     approvedTransactions,
@@ -129,5 +136,6 @@ export const useTransactions = () => {
     deleteTransaction,
     updateTransactionStatus,
     balance,
+    getBalance,
   };
 };
