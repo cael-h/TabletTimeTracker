@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Plus, Clock, Settings, CheckSquare } from 'lucide-react';
+import { Home, Plus, Clock, Settings, CheckSquare, Tablet } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -10,6 +10,7 @@ interface BottomNavProps {
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onNavigate, pendingCount = 0 }) => {
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
+    { id: 'usage', label: 'Timer', icon: Tablet },
     { id: 'add', label: 'Add', icon: Plus },
     { id: 'approvals', label: 'Approvals', icon: CheckSquare, badge: pendingCount },
     { id: 'history', label: 'History', icon: Clock },
@@ -18,7 +19,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onNavigate, pen
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 safe-area-bottom">
-      <div className="grid grid-cols-5 h-16">
+      <div className="grid grid-cols-6 h-16">
         {tabs.map(({ id, label, icon: Icon, badge }) => (
           <button
             key={id}

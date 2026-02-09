@@ -15,6 +15,7 @@ import { AddTransactionPage } from './pages/AddTransactionPage';
 import { ApprovalsPage } from './pages/ApprovalsPage';
 import { HistoryPage } from './pages/HistoryPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { UsagePage } from './pages/UsagePage';
 import { BottomNav } from './components/BottomNav';
 import { WifiOff } from 'lucide-react';
 
@@ -112,6 +113,8 @@ function App() {
     switch (activeTab) {
       case 'home':
         return <DashboardPage onNavigate={setActiveTab} />;
+      case 'usage':
+        return <UsagePage />;
       case 'add':
         return <AddTransactionPage />;
       case 'approvals':
