@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import type { FC, ComponentType } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useTransactions } from '../hooks/useTransactions';
 import { useFamily } from '../hooks/useFamily';
 import { useIdentity } from '../contexts/IdentityContext';
-import { useChild } from '../contexts/ChildContext';
+
 import { useTheme } from '../contexts/ThemeContext';
 import {
   User,
@@ -27,15 +28,16 @@ import {
   UserCheck,
   AlertCircle,
 } from 'lucide-react';
-import type { ThemeMode } from '../types';
+import type { ThemeMode, TransactionUnit } from '../types';
+import { formatAmount } from '../utils/format';
 
-export const SettingsPage: React.FC = () => {
+export const SettingsPage: FC = () => {
   const { signOut, user } = useAuth();
   const { settings, addRewardReason, removeRewardReason, addRedemptionReason, removeRedemptionReason, addChoreReason, removeChoreReason } = useSettings();
-  const { addTransaction, balance } = useTransactions();
+  const { addTransaction, getBalance } = useTransactions();
   const { family, shareInvite, addManualMember, isApprovedParent, updateDisplayName, updateMemberColor, getCurrentMember, requestPermission } = useFamily();
   const { identity, setIdentity } = useIdentity();
-  const { activeChildId } = useChild();
+
   const { theme, setTheme } = useTheme();
 
   const [newRewardReason, setNewRewardReason] = useState('');
@@ -74,11 +76,11 @@ export const SettingsPage: React.FC = () => {
     setNewChoreReason('');
   };
 
-  const handleResetBalance = async () => {
+  const handleResetBalance = async (childId: string, memberBalance: number, unit: TransactionUnit) => {
     if (!identity || !user) return;
 
     const confirmed = confirm(
-      `Are you sure you want to reset the balance to 0? Current balance: ${balance}. This will create an adjustment transaction.`
+      `Reset this balance to 0? Current: ${formatAmount(memberBalance, unit)}. This will create an adjustment transaction.`
     );
 
     if (!confirmed) return;
@@ -86,13 +88,13 @@ export const SettingsPage: React.FC = () => {
     setResetting(true);
     try {
       await addTransaction({
-        amount: -balance,
+        amount: -memberBalance,
         reason: 'Balance Reset',
         category: 'Adjustment',
         user: identity,
         userId: user.uid,
-        childId: activeChildId!,
-        unit: 'minutes', // Default to minutes for reset
+        childId,
+        unit,
       });
       alert('Balance reset successfully!');
     } catch (error) {
@@ -129,7 +131,7 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const themeOptions: { value: ThemeMode; icon: any; label: string }[] = [
+  const themeOptions: { value: ThemeMode; icon: ComponentType<{ size?: number }>; label: string }[] = [
     { value: 'light', icon: Sun, label: 'Light' },
     { value: 'dark', icon: Moon, label: 'Dark' },
     { value: 'system', icon: Monitor, label: 'System' },
@@ -190,10 +192,7 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const getCurrentMemberInfo = () => {
-    if (!user || !family) return null;
-    return family.members[user.uid];
-  };
+  const currentMemberInfo = getCurrentMember();
 
   const handleUpdateMemberColor = async (memberId: string, color: string) => {
     try {
@@ -234,7 +233,7 @@ export const SettingsPage: React.FC = () => {
               type="text"
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleCustomNameSubmit()}
+              onKeyDown={(e) => e.key === 'Enter' && handleCustomNameSubmit()}
               className="input-field"
               placeholder="Enter your name"
               autoFocus
@@ -317,7 +316,7 @@ export const SettingsPage: React.FC = () => {
       </div>
 
       {/* Display Name & Emails Section */}
-      {family && getCurrentMemberInfo() && (
+      {family && currentMemberInfo && (
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -357,11 +356,11 @@ export const SettingsPage: React.FC = () => {
             ) : (
               <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                 <span className="font-medium text-gray-900 dark:text-white">
-                  {getCurrentMemberInfo()?.displayName}
+                  {currentMemberInfo?.displayName}
                 </span>
                 <button
                   onClick={() => {
-                    setEditDisplayName(getCurrentMemberInfo()?.displayName || '');
+                    setEditDisplayName(currentMemberInfo?.displayName || '');
                     setShowEditDisplayName(true);
                   }}
                   className="btn-secondary text-sm"
@@ -373,13 +372,13 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           {/* Affiliated Emails */}
-          {getCurrentMemberInfo()?.emails && getCurrentMemberInfo()!.emails.length > 0 && (
+          {currentMemberInfo?.emails && currentMemberInfo.emails.length > 0 && (
             <div>
               <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Affiliated Emails
               </div>
               <div className="space-y-2">
-                {getCurrentMemberInfo()!.emails.map((email, index) => (
+                {currentMemberInfo.emails.map((email, index) => (
                   <div
                     key={index}
                     className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300"
@@ -394,7 +393,7 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* Parent Permission Request Section */}
-      {getCurrentMember()?.role === 'parent' && getCurrentMember()?.status === 'pending' && (
+      {currentMemberInfo?.role === 'parent' && currentMemberInfo?.status === 'pending' && (
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle size={20} className="text-amber-600 dark:text-amber-400" />
@@ -404,7 +403,7 @@ export const SettingsPage: React.FC = () => {
             <p className="text-sm text-gray-700 dark:text-gray-300">
               Your account is pending approval from an existing parent. Request permission to gain full access to family settings.
             </p>
-            {(permissionRequested || getCurrentMember()?.requestedAt) ? (
+            {(permissionRequested || currentMemberInfo?.requestedAt) ? (
               <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <div className="flex items-center gap-2 mb-1">
                   <UserCheck size={18} className="text-green-600 dark:text-green-400" />
@@ -424,7 +423,7 @@ export const SettingsPage: React.FC = () => {
                 {requestingPermission ? 'Sending Request...' : 'Request Permission to Join as Parent'}
               </button>
             )}
-            {getCurrentMember()?.requestedAt && !permissionRequested && (
+            {currentMemberInfo?.requestedAt && !permissionRequested && (
               <button
                 onClick={handleRequestPermission}
                 disabled={requestingPermission}
@@ -685,7 +684,7 @@ export const SettingsPage: React.FC = () => {
             type="text"
             value={newRewardReason}
             onChange={(e) => setNewRewardReason(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAddRewardReason()}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddRewardReason()}
             placeholder="Add new reason"
             className="input-field flex-1"
           />
@@ -725,7 +724,7 @@ export const SettingsPage: React.FC = () => {
             type="text"
             value={newRedemptionReason}
             onChange={(e) => setNewRedemptionReason(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAddRedemptionReason()}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddRedemptionReason()}
             placeholder="Add new reason"
             className="input-field flex-1"
           />
@@ -765,7 +764,7 @@ export const SettingsPage: React.FC = () => {
             type="text"
             value={newChoreReason}
             onChange={(e) => setNewChoreReason(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleAddChoreReason()}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddChoreReason()}
             placeholder="Add new reason"
             className="input-field flex-1"
           />
@@ -846,20 +845,41 @@ export const SettingsPage: React.FC = () => {
       )}
 
       {/* Reset Balance */}
-      <div className="card">
-        <h2 className="text-lg font-semibold mb-2">Reset Balance</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          This will create an adjustment transaction to set the balance to 0.
-        </p>
-        <button
-          onClick={handleResetBalance}
-          disabled={resetting || balance === 0}
-          className="btn-danger w-full flex items-center justify-center gap-2"
-        >
-          <RotateCcw size={20} />
-          {resetting ? 'Resetting...' : 'Reset Balance to 0'}
-        </button>
-      </div>
+      {family && (
+        <div className="card">
+          <h2 className="text-lg font-semibold mb-2">Reset Balance</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Create an adjustment transaction to set a member's balance to 0.
+          </p>
+          <div className="space-y-2">
+            {Object.values(family.members)
+              .filter(m => m.childId)
+              .sort((a, b) => a.displayName.localeCompare(b.displayName))
+              .map(member => {
+                const memberBalance = getBalance(member.childId!);
+                const memberUnit: TransactionUnit = member.role === 'kid' ? 'minutes' : 'points';
+                return (
+                  <div key={member.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div>
+                      <span className="font-medium text-gray-900 dark:text-white">{member.displayName}</span>
+                      <span className={`ml-2 text-sm ${memberBalance >= 0 ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>
+                        {formatAmount(memberBalance, memberUnit)}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleResetBalance(member.childId!, memberBalance, memberUnit)}
+                      disabled={resetting || memberBalance === 0}
+                      className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded-lg disabled:opacity-50 flex items-center gap-1"
+                    >
+                      <RotateCcw size={14} />
+                      Reset
+                    </button>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
 
       {/* Sign Out */}
       <div className="card">

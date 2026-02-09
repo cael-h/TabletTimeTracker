@@ -1,10 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import type { FC } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
 import { useFamily } from '../hooks/useFamily';
 import { Plus, Minus, Trash2, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
-import type { Transaction } from '../types';
+import { formatAmount, getPersonInfo } from '../utils/format';
+import type { Transaction, TransactionUnit, FamilyMember } from '../types';
 
 interface GroupedTransactions {
   date: Date;
@@ -12,18 +14,37 @@ interface GroupedTransactions {
   dailyTotal: number;
 }
 
-export const HistoryPage: React.FC = () => {
-  const { transactions, deleteTransaction, loading, balance } = useTransactions();
+export const HistoryPage: FC = () => {
+  const { transactions, deleteTransaction, loading, getBalance } = useTransactions();
   const { settings } = useSettings();
   const { family } = useFamily();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
+
+  // Build list of members with childIds for the filter
+  const filterableMembers: FamilyMember[] = useMemo(
+    () => family ? Object.values(family.members).filter(m => m.childId).sort((a, b) => a.displayName.localeCompare(b.displayName)) : [],
+    [family],
+  );
+
+  const filterMember = filterableMembers.find(m => m.id === filterMemberId) ?? null;
+
+  // Filter transactions by selected member
+  const filteredTransactions = useMemo(
+    () => filterMember ? transactions.filter(t => t.childId === filterMember.childId) : transactions,
+    [transactions, filterMember],
+  );
+
+  // Filtered balance and unit
+  const filteredBalance = filterMember ? getBalance(filterMember.childId!) : null;
+  const filteredUnit: TransactionUnit | null = filterMember ? (filterMember.role === 'kid' ? 'minutes' : 'points') : null;
 
   // Group transactions by day
   const groupedTransactions = useMemo(() => {
     const groups: GroupedTransactions[] = [];
     let currentGroup: GroupedTransactions | null = null;
 
-    transactions.forEach((txn) => {
+    filteredTransactions.forEach((txn) => {
       if (!currentGroup || !isSameDay(currentGroup.date, txn.timestamp)) {
         if (currentGroup) {
           groups.push(currentGroup);
@@ -44,45 +65,7 @@ export const HistoryPage: React.FC = () => {
     }
 
     return groups;
-  }, [transactions]);
-
-  const formatMinutes = (minutes: number) => {
-    const absMinutes = Math.abs(minutes);
-    const hours = Math.floor(absMinutes / 60);
-    const mins = absMinutes % 60;
-
-    if (hours > 0) {
-      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-    }
-    return `${mins}m`;
-  };
-
-  const formatAmount = (amount: number, unit: 'minutes' | 'points') => {
-    if (unit === 'points') {
-      return `${Math.abs(amount)} pts`;
-    }
-    return formatMinutes(amount);
-  };
-
-  const getPersonInfo = (childId: string) => {
-    // First try to find the member in family.members by childId
-    if (family) {
-      const member = Object.values(family.members).find((m) => m.childId === childId);
-      if (member) {
-        return {
-          name: member.displayName,
-          color: member.color || '#6b7280',
-        };
-      }
-    }
-
-    // Fallback to settings.children for backward compatibility
-    const person = settings?.children.find((c) => c.id === childId);
-    return {
-      name: person?.name || 'Unknown',
-      color: person?.color || '#6b7280', // Default gray if no color
-    };
-  };
+  }, [filteredTransactions]);
 
   const handleDelete = async (txn: Transaction) => {
     if (!confirm(`Delete "${txn.reason}" transaction?`)) return;
@@ -133,20 +116,46 @@ export const HistoryPage: React.FC = () => {
 
   return (
     <div className="p-4 pb-24">
-      {/* Running Balance Header */}
-      <div className="card mb-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Running Balance</span>
-          <span
-            className={`text-2xl font-bold ${
-              balance >= 0
-                ? 'text-green-600 dark:text-green-500'
-                : 'text-red-600 dark:text-red-500'
-            }`}
-          >
-            {formatMinutes(balance)}
-          </span>
-        </div>
+      {/* Member Filter + Balance Header */}
+      <div className="card mb-4 sticky top-0 z-10 space-y-3">
+        {/* Member filter chips */}
+        {filterableMembers.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setFilterMemberId(null)}
+              className={`chip text-sm ${filterMemberId === null ? 'chip-selected' : ''}`}
+            >
+              All
+            </button>
+            {filterableMembers.map(m => (
+              <button
+                key={m.id}
+                onClick={() => setFilterMemberId(m.id)}
+                className={`chip text-sm ${filterMemberId === m.id ? 'chip-selected' : ''}`}
+              >
+                {m.displayName}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Balance — only shown when a specific member is selected */}
+        {filteredBalance !== null && filteredUnit !== null && (
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              {filterMember?.displayName}'s Balance
+            </span>
+            <span
+              className={`text-2xl font-bold ${
+                filteredBalance >= 0
+                  ? 'text-green-600 dark:text-green-500'
+                  : 'text-red-600 dark:text-red-500'
+              }`}
+            >
+              {formatAmount(filteredBalance, filteredUnit)}
+            </span>
+          </div>
+        )}
       </div>
 
       {groupedTransactions.length === 0 ? (
@@ -166,22 +175,24 @@ export const HistoryPage: React.FC = () => {
                 <h3 className="font-semibold text-gray-700 dark:text-gray-300">
                   {format(group.date, 'EEE, MMM d, yyyy')}
                 </h3>
-                <span
-                  className={`text-sm font-medium ${
-                    group.dailyTotal >= 0
-                      ? 'text-green-600 dark:text-green-500'
-                      : 'text-red-600 dark:text-red-500'
-                  }`}
-                >
-                  {group.dailyTotal > 0 ? '+' : ''}
-                  {formatMinutes(group.dailyTotal)}
-                </span>
+                {filteredUnit && (
+                  <span
+                    className={`text-sm font-medium ${
+                      group.dailyTotal >= 0
+                        ? 'text-green-600 dark:text-green-500'
+                        : 'text-red-600 dark:text-red-500'
+                    }`}
+                  >
+                    {group.dailyTotal > 0 ? '+' : ''}
+                    {formatAmount(group.dailyTotal, filteredUnit)}
+                  </span>
+                )}
               </div>
 
               {/* Transactions */}
               <div className="space-y-2">
                 {group.transactions.map((txn) => {
-                  const personInfo = getPersonInfo(txn.childId);
+                  const personInfo = getPersonInfo(txn.childId, family, settings);
                   return (
                     <div
                       key={txn.id}

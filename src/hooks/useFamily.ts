@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   doc,
   getDoc,
@@ -49,6 +49,7 @@ export const useFamily = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
+  const migrationRanRef = useRef(false);
 
   // Helper function to create a Child record for tracking transactions
   const createChildRecord = async (familyId: string, name: string): Promise<string> => {
@@ -209,11 +210,12 @@ export const useFamily = () => {
 
                 setFamily(familyData);
 
-                // Ensure all members have childIds (migration for existing data)
-                ensureMembersHaveChildIds(snapshot.id, members).catch(console.error);
-
-                // Ensure all child records have IDs (migration for existing data)
-                ensureChildRecordsHaveIds(snapshot.id, members).catch(console.error);
+                // Ensure all members have childIds (migration for existing data) — run once per session
+                if (!migrationRanRef.current) {
+                  migrationRanRef.current = true;
+                  ensureMembersHaveChildIds(snapshot.id, members).catch(console.error);
+                  ensureChildRecordsHaveIds(snapshot.id, members).catch(console.error);
+                }
               } else {
                 setFamily(null);
               }
