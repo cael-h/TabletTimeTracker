@@ -6,7 +6,7 @@ import { Plus, Minus, Clock, TrendingUp, ChevronDown, ChevronUp } from 'lucide-r
 import { formatDistanceToNow } from 'date-fns';
 
 interface DashboardPageProps {
-  onNavigate: (tab: string) => void;
+  onNavigate: (tab: string, memberId?: string) => void;
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
@@ -134,9 +134,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             {showKids && (
               <div className="space-y-2">
                 {memberBalances.kids.map((item) => (
-                  <div
+                  <button
                     key={item.member.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                    onClick={() => onNavigate('add', item.member.id)}
+                    className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600/50 active:bg-gray-200 dark:active:bg-gray-600 transition-colors text-left"
                   >
                     <div className="flex items-center gap-3">
                       {item.member.color && (
@@ -158,7 +159,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     >
                       {formatAmount(item.balance, item.unit)}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
@@ -179,9 +180,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             {showParents && (
               <div className="space-y-2">
                 {memberBalances.parents.map((item) => (
-                  <div
+                  <button
                     key={item.member.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                    onClick={() => onNavigate('add', item.member.id)}
+                    className="w-full flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600/50 active:bg-gray-200 dark:active:bg-gray-600 transition-colors text-left"
                   >
                     <div className="flex items-center gap-3">
                       {item.member.color && (
@@ -203,7 +205,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                     >
                       {formatAmount(item.balance, item.unit)}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}

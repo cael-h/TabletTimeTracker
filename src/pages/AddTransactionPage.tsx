@@ -9,7 +9,14 @@ import type { TransactionInput, TransactionCategory, TransactionUnit } from '../
 
 const QUICK_AMOUNTS = [3, 5, 10, 15, 30, 60];
 
-export const AddTransactionPage: React.FC = () => {
+interface AddTransactionPageProps {
+  preSelectedMemberId?: string | null;
+  onMemberUsed?: () => void;
+}
+
+const LAST_MEMBER_KEY = 'ttt-last-selected-member';
+
+export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({ preSelectedMemberId, onMemberUsed }) => {
   const [category, setCategory] = useState<TransactionCategory>('Reward');
   const [unit, setUnit] = useState<TransactionUnit>('minutes');
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -35,25 +42,39 @@ export const AddTransactionPage: React.FC = () => {
     ? Object.values(family.members).filter(m => m.childId)
     : [];
 
-  // Set default selected member to current user or first available
+  // Set default selected member: preSelected prop > localStorage > alphabetically first child
   useEffect(() => {
-    if (!selectedMemberId && availableMembers.length > 0) {
-      // Try to find current user's member record
-      const currentUserMember = availableMembers.find(m => m.authUserId === user?.uid);
-      if (currentUserMember) {
-        setSelectedMemberId(currentUserMember.id);
-      } else {
-        setSelectedMemberId(availableMembers[0].id);
+    if (availableMembers.length === 0) return;
+
+    if (preSelectedMemberId) {
+      const match = availableMembers.find(m => m.id === preSelectedMemberId);
+      if (match) {
+        setSelectedMemberId(match.id);
+        onMemberUsed?.();
+        return;
       }
     }
-  }, [availableMembers, selectedMemberId, user]);
+
+    if (!selectedMemberId) {
+      const lastId = localStorage.getItem(LAST_MEMBER_KEY);
+      if (lastId && availableMembers.find(m => m.id === lastId)) {
+        setSelectedMemberId(lastId);
+      } else {
+        const sorted = [...availableMembers].sort((a, b) =>
+          a.displayName.localeCompare(b.displayName)
+        );
+        setSelectedMemberId(sorted[0].id);
+      }
+    }
+  }, [availableMembers, preSelectedMemberId]);
 
   const selectedMember = availableMembers.find(m => m.id === selectedMemberId);
 
-  // Update unit based on selected member's role
+  // Update unit based on selected member's role, and persist selection
   useEffect(() => {
     if (selectedMember) {
       setUnit(selectedMember.role === 'kid' ? 'minutes' : 'points');
+      localStorage.setItem(LAST_MEMBER_KEY, selectedMember.id);
     }
   }, [selectedMember]);
 

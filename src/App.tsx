@@ -26,6 +26,7 @@ function App() {
   const { identity, syncFromMember: syncIdentityFromMember } = useIdentity();
   const { activeChildId, syncFromMember: syncChildFromMember } = useChild();
   const [activeTab, setActiveTab] = useState('home');
+  const [addPageMemberId, setAddPageMemberId] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [matchHandled, setMatchHandled] = useState(false);
 
@@ -112,11 +113,14 @@ function App() {
   const renderPage = () => {
     switch (activeTab) {
       case 'home':
-        return <DashboardPage onNavigate={setActiveTab} />;
+        return <DashboardPage onNavigate={(tab, memberId) => {
+          if (memberId) setAddPageMemberId(memberId);
+          setActiveTab(tab);
+        }} />;
       case 'usage':
         return <UsagePage />;
       case 'add':
-        return <AddTransactionPage />;
+        return <AddTransactionPage preSelectedMemberId={addPageMemberId} onMemberUsed={() => setAddPageMemberId(null)} />;
       case 'approvals':
         return <ApprovalsPage />;
       case 'history':
