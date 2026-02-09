@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { AuthProvider } from './contexts/AuthContext'
 import { IdentityProvider } from './contexts/IdentityContext'
 import { ChildProvider } from './contexts/ChildContext'
 
@@ -11,11 +12,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
       <ThemeProvider>
-        <IdentityProvider>
-          <ChildProvider>
-            <App />
-          </ChildProvider>
-        </IdentityProvider>
+        <AuthProvider>
+          <IdentityProvider>
+            <ChildProvider>
+              <App />
+            </ChildProvider>
+          </IdentityProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   </StrictMode>,
