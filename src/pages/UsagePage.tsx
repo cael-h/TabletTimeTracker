@@ -56,15 +56,20 @@ export const UsagePage: React.FC = () => {
   const [isFlashing, setIsFlashing] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const flashIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const flashIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Deduplicate children by ID
+  const children = (settings?.children ?? []).filter(
+    (child, index, arr) => arr.findIndex(c => c.id === child.id) === index
+  );
 
   // Restore last selected child from localStorage
   useEffect(() => {
-    if (!settings?.children || childInitialized) return;
+    if (children.length === 0 || childInitialized) return;
 
     const lastId = localStorage.getItem(LAST_TIMER_CHILD_KEY);
     if (lastId) {
-      const match = settings.children.find(c => c.id === lastId);
+      const match = children.find(c => c.id === lastId);
       if (match) {
         setSelectedChild(match);
         setChildInitialized(true);
@@ -73,14 +78,14 @@ export const UsagePage: React.FC = () => {
     }
 
     // Fall back to alphabetically first child
-    if (settings.children.length > 0) {
-      const sorted = [...settings.children].sort((a, b) =>
+    if (children.length > 0) {
+      const sorted = [...children].sort((a, b) =>
         a.name.localeCompare(b.name)
       );
       setSelectedChild(sorted[0]);
     }
     setChildInitialized(true);
-  }, [settings?.children, childInitialized]);
+  }, [children.length, childInitialized]);
 
   // Persist selected child to localStorage
   useEffect(() => {
@@ -386,7 +391,7 @@ export const UsagePage: React.FC = () => {
               </button>
 
               {/* Child options */}
-              {settings?.children.map(child => (
+              {children.map(child => (
                 <button
                   key={child.id}
                   onClick={() => {

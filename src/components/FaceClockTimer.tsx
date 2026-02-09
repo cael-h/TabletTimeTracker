@@ -13,7 +13,7 @@ export const FaceClockTimer: React.FC<FaceClockTimerProps> = ({
   maxSeconds,
   label,
   color,
-  isCountingDown = false,
+  isCountingDown: _isCountingDown = false,
 }) => {
   // Calculate the angle for the hand (0 degrees = 12 o'clock position)
   const handAngle = useMemo(() => {
