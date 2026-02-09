@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import type { FC } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
@@ -16,7 +17,7 @@ interface AddTransactionPageProps {
 
 const LAST_MEMBER_KEY = 'ttt-last-selected-member';
 
-export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({ preSelectedMemberId, onMemberUsed }) => {
+export const AddTransactionPage: FC<AddTransactionPageProps> = ({ preSelectedMemberId, onMemberUsed }) => {
   const [category, setCategory] = useState<TransactionCategory>('Reward');
   const [unit, setUnit] = useState<TransactionUnit>('minutes');
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -37,10 +38,11 @@ export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({ preSelec
 
   const isParent = isApprovedParent();
 
-  // Get available family members (including pre-added ones)
-  const availableMembers = family
-    ? Object.values(family.members).filter(m => m.childId)
-    : [];
+  // Memoize to avoid creating a new array every render (which would re-trigger the useEffect)
+  const availableMembers = useMemo(
+    () => family ? Object.values(family.members).filter(m => m.childId) : [],
+    [family],
+  );
 
   // Set default selected member: preSelected prop > localStorage > alphabetically first child
   useEffect(() => {
@@ -66,7 +68,8 @@ export const AddTransactionPage: React.FC<AddTransactionPageProps> = ({ preSelec
         setSelectedMemberId(sorted[0].id);
       }
     }
-  }, [availableMembers, preSelectedMemberId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- selectedMemberId intentionally omitted to avoid re-running after we set it
+  }, [availableMembers, preSelectedMemberId, onMemberUsed]);
 
   const selectedMember = availableMembers.find(m => m.id === selectedMemberId);
 

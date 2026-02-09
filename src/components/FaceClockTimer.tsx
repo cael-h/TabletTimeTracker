@@ -1,19 +1,18 @@
 import { useMemo } from 'react';
+import type { FC } from 'react';
 
 interface FaceClockTimerProps {
-  currentSeconds: number; // Current time in seconds
-  maxSeconds: number; // Maximum time (for the clock face scale)
+  currentSeconds: number;
+  maxSeconds: number;
   label: string;
-  color: string; // Primary color for the hand
-  isCountingDown?: boolean;
+  color: string;
 }
 
-export const FaceClockTimer: React.FC<FaceClockTimerProps> = ({
+export const FaceClockTimer: FC<FaceClockTimerProps> = ({
   currentSeconds,
   maxSeconds,
   label,
   color,
-  isCountingDown: _isCountingDown = false,
 }) => {
   // Calculate the angle for the hand (0 degrees = 12 o'clock position)
   const handAngle = useMemo(() => {
@@ -102,7 +101,7 @@ export const FaceClockTimer: React.FC<FaceClockTimerProps> = ({
             stroke={color}
             strokeWidth="4"
             strokeLinecap="round"
-            strokeDasharray={`${(currentSeconds / maxSeconds) * 276.46} 276.46`}
+            strokeDasharray={`${(maxSeconds === 0 ? 0 : (currentSeconds / maxSeconds)) * 276.46} 276.46`}
             transform="rotate(-90 50 50)"
             className="transition-all duration-100"
             style={{ opacity: 0.3 }}

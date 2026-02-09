@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useFamily } from './hooks/useFamily';
 import { useTransactions } from './hooks/useTransactions';
@@ -110,17 +110,21 @@ function App() {
     return <ChildSelectPage />;
   }
 
+  const handleDashboardNavigate = useCallback((tab: string, memberId?: string) => {
+    if (memberId) setAddPageMemberId(memberId);
+    setActiveTab(tab);
+  }, []);
+
+  const handleMemberUsed = useCallback(() => setAddPageMemberId(null), []);
+
   const renderPage = () => {
     switch (activeTab) {
       case 'home':
-        return <DashboardPage onNavigate={(tab, memberId) => {
-          if (memberId) setAddPageMemberId(memberId);
-          setActiveTab(tab);
-        }} />;
+        return <DashboardPage onNavigate={handleDashboardNavigate} />;
       case 'usage':
         return <UsagePage />;
       case 'add':
-        return <AddTransactionPage preSelectedMemberId={addPageMemberId} onMemberUsed={() => setAddPageMemberId(null)} />;
+        return <AddTransactionPage preSelectedMemberId={addPageMemberId} onMemberUsed={handleMemberUsed} />;
       case 'approvals':
         return <ApprovalsPage />;
       case 'history':
@@ -128,7 +132,7 @@ function App() {
       case 'settings':
         return <SettingsPage />;
       default:
-        return <DashboardPage onNavigate={setActiveTab} />;
+        return <DashboardPage onNavigate={handleDashboardNavigate} />;
     }
   };
 

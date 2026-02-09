@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSettings } from '../hooks/useSettings';
 import { useTransactions } from '../hooks/useTransactions';
@@ -58,9 +58,12 @@ export const UsagePage: React.FC = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const flashIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Deduplicate children by ID
-  const children = (settings?.children ?? []).filter(
-    (child, index, arr) => arr.findIndex(c => c.id === child.id) === index
+  // Deduplicate children by ID (memoized so useEffect deps are stable)
+  const children = useMemo(
+    () => (settings?.children ?? []).filter(
+      (child, index, arr) => arr.findIndex(c => c.id === child.id) === index
+    ),
+    [settings?.children],
   );
 
   // Restore last selected child from localStorage
@@ -85,7 +88,7 @@ export const UsagePage: React.FC = () => {
       setSelectedChild(sorted[0]);
     }
     setChildInitialized(true);
-  }, [children.length, childInitialized]);
+  }, [children, childInitialized]);
 
   // Persist selected child to localStorage
   useEffect(() => {
@@ -121,36 +124,51 @@ export const UsagePage: React.FC = () => {
     return Math.ceil(minutes / 10) * 10;
   })();
 
-  // Timer update effect
+  // Timer update effect — rAF for smooth visuals, setInterval as background fallback for alarm
   useEffect(() => {
     let animationFrame: number;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
-    const updateTimer = () => {
+    const checkElapsed = () => {
       if (timerState === 'running' && startTime !== null) {
-        const now = Date.now();
-        const newElapsed = pausedElapsed + (now - startTime);
+        const newElapsed = pausedElapsed + (Date.now() - startTime);
         setElapsedMs(newElapsed);
 
-        // Check if time's up (only for countdown modes)
         if (newElapsed >= maxTimeMs && maxTimeMs > 0) {
           setTimerState('finished');
           triggerAlarm();
-        } else {
-          animationFrame = requestAnimationFrame(updateTimer);
+          return true; // signal: timer finished
         }
+      }
+      return false;
+    };
+
+    const updateTimer = () => {
+      if (!checkElapsed()) {
+        animationFrame = requestAnimationFrame(updateTimer);
       }
     };
 
     if (timerState === 'running') {
       animationFrame = requestAnimationFrame(updateTimer);
+
+      // Fallback: check every second even when tab is backgrounded (rAF pauses)
+      if (maxTimeMs > 0) {
+        intervalId = setInterval(() => {
+          checkElapsed();
+        }, 1000);
+      }
     }
 
     return () => {
       if (animationFrame) {
         cancelAnimationFrame(animationFrame);
       }
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
     };
-  }, [timerState, startTime, pausedElapsed, maxTimeMs]);
+  }, [timerState, startTime, pausedElapsed, maxTimeMs, triggerAlarm]);
 
   // Cleanup flash interval on unmount
   useEffect(() => {
@@ -592,7 +610,6 @@ export const UsagePage: React.FC = () => {
                   maxSeconds={faceClockMaxMinutes * 60}
                   label="Remaining"
                   color={remainingMs < 60000 ? '#ef4444' : '#6366f1'}
-                  isCountingDown
                 />
               )}
             </div>
