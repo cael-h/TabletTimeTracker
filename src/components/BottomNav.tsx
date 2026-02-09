@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Plus, Clock, Settings, CheckSquare, Tablet } from 'lucide-react';
+import { Home, ArrowUpDown, Clock, Settings, CheckSquare, Tablet } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: string;
@@ -11,7 +11,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onNavigate, pen
   const tabs = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'usage', label: 'Timer', icon: Tablet },
-    { id: 'add', label: 'Add', icon: Plus },
+    { id: 'add', label: 'Add/Spend', icon: ArrowUpDown },
     { id: 'approvals', label: 'Approvals', icon: CheckSquare, badge: pendingCount },
     { id: 'history', label: 'History', icon: Clock },
     { id: 'settings', label: 'Settings', icon: Settings },
