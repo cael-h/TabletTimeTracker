@@ -7,7 +7,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import type { Settings, SettingsDoc, Child } from '../types';
+import type { Settings, SettingsDoc, Child, ChildDoc } from '../types';
 import { useAuth } from './useAuth';
 import { useFamily } from './useFamily';
 
@@ -66,8 +66,7 @@ export const useSettings = () => {
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data() as SettingsDoc;
-          const children: Child[] = (data.children || []).map((childDoc: any) => ({
-            // Use stored ID if available, otherwise generate from name (for backward compatibility)
+          const children: Child[] = (data.children || []).map((childDoc: ChildDoc & { id?: string }) => ({
             id: childDoc.id || childDoc.name.toLowerCase().replace(/\s+/g, '-'),
             name: childDoc.name,
             createdAt: childDoc.createdAt?.toDate() || new Date(),
@@ -170,17 +169,6 @@ export const useSettings = () => {
     await updateSettings({ children: newChildren });
   };
 
-  const updateChildColor = async (childId: string, color: string) => {
-    if (!settings) return;
-    const newChildren = settings.children.map(c => ({
-      id: c.id,
-      name: c.name,
-      createdAt: Timestamp.fromDate(c.createdAt),
-      color: c.id === childId ? color : c.color,
-    }));
-    await updateSettings({ children: newChildren });
-  };
-
   return {
     settings,
     loading,
@@ -194,6 +182,5 @@ export const useSettings = () => {
     removeChoreReason,
     addChild,
     removeChild,
-    updateChildColor,
   };
 };

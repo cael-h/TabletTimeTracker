@@ -110,17 +110,6 @@ export interface Settings {
   children: Child[];
 }
 
-// Personal settings (stored per user, not synced)
-export interface PersonalSettings {
-  childColors: { [childId: string]: string }; // Personal color preferences for each child
-  theme: ThemeMode;
-}
-
-export interface PersonalSettingsDoc {
-  childColors: { [childId: string]: string };
-  theme: ThemeMode;
-}
-
 // User identity - can be Mom, Dad, or custom name
 export type UserIdentity = string;
 

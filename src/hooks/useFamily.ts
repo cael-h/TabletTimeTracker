@@ -428,23 +428,6 @@ export const useFamily = () => {
     });
   };
 
-  // Update member's child ID (link a kid to a child profile)
-  const linkMemberToChild = async (memberId: string, childId: string): Promise<void> => {
-    if (!user) throw new Error('No authenticated user');
-    if (!family) throw new Error('No family found');
-
-    // Check if current user is an approved parent
-    const currentMember = family.members[user.uid];
-    if (!currentMember || currentMember.role !== 'parent' || currentMember.status !== 'approved') {
-      throw new Error('Only approved parents can link members to children');
-    }
-
-    const familyDoc = doc(db, `families/${family.id}`);
-    await updateDoc(familyDoc, {
-      [`members.${memberId}.childId`]: childId,
-    });
-  };
-
   // Get current user's member info
   const getCurrentMember = (): FamilyMember | null => {
     if (!user || !family) return null;
@@ -455,14 +438,6 @@ export const useFamily = () => {
   const isApprovedParent = (): boolean => {
     const member = getCurrentMember();
     return member?.role === 'parent' && member?.status === 'approved';
-  };
-
-  // Get all approved parents
-  const getApprovedParents = (): FamilyMember[] => {
-    if (!family) return [];
-    return Object.values(family.members).filter(
-      m => m.role === 'parent' && m.status === 'approved'
-    );
   };
 
   // Get all pending parent requests
@@ -719,12 +694,9 @@ export const useFamily = () => {
     createFamily,
     joinFamily,
     updateMemberStatus,
-    linkMemberToChild,
     getCurrentMember,
     isApprovedParent,
-    getApprovedParents,
     getPendingParentRequests,
-    getInviteLink,
     shareInvite,
     addManualMember,
     findMatchingMember,
