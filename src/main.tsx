@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { FamilyProvider } from './contexts/FamilyContext'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { TransactionsProvider } from './contexts/TransactionsContext'
 import { IdentityProvider } from './contexts/IdentityContext'
 import { ChildProvider } from './contexts/ChildContext'
 
@@ -17,11 +18,13 @@ createRoot(document.getElementById('root')!).render(
         <AuthProvider>
           <FamilyProvider>
             <SettingsProvider>
-              <IdentityProvider>
-                <ChildProvider>
-                  <App />
-                </ChildProvider>
-              </IdentityProvider>
+              <TransactionsProvider>
+                <IdentityProvider>
+                  <ChildProvider>
+                    <App />
+                  </ChildProvider>
+                </IdentityProvider>
+              </TransactionsProvider>
             </SettingsProvider>
           </FamilyProvider>
         </AuthProvider>
