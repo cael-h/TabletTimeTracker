@@ -1,6 +1,7 @@
 import { useState, type FC } from 'react';
 import { Users, Share2, Copy, CheckCircle, Plus, X } from 'lucide-react';
 import type { FamilyGroup, MemberRole } from '../../types';
+import { useToast } from '../Toast';
 
 interface FamilySectionProps {
   family: FamilyGroup;
@@ -13,6 +14,7 @@ interface FamilySectionProps {
 export const FamilySection: FC<FamilySectionProps> = ({
   family, currentUserId, isParent, onShareInvite, onAddMember,
 }) => {
+  const { toast } = useToast();
   const [codeCopied, setCodeCopied] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
@@ -27,13 +29,13 @@ export const FamilySection: FC<FamilySectionProps> = ({
       setTimeout(() => setCodeCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
-      alert('Failed to copy family code');
+      toast('Failed to copy family code', 'error');
     }
   };
 
   const handleAddMember = async () => {
     if (!newMemberName.trim()) {
-      alert('Please enter a name');
+      toast('Please enter a name', 'error');
       return;
     }
     setAddingMember(true);
@@ -43,10 +45,10 @@ export const FamilySection: FC<FamilySectionProps> = ({
       setNewMemberEmail('');
       setNewMemberRole('kid');
       setShowAddMember(false);
-      alert('Family member added successfully!');
+      toast('Family member added!');
     } catch (error) {
       console.error('Error adding member:', error);
-      alert(error instanceof Error ? error.message : 'Failed to add family member');
+      toast(error instanceof Error ? error.message : 'Failed to add family member', 'error');
     } finally {
       setAddingMember(false);
     }

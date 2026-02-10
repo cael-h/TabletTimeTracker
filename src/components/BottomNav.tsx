@@ -24,6 +24,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onNavigate, pen
           <button
             key={id}
             onClick={() => onNavigate(id)}
+            aria-label={badge && badge > 0 ? `${label} (${badge} pending)` : label}
+            aria-current={activeTab === id ? 'page' : undefined}
             className={`flex flex-col items-center justify-center gap-1 transition-colors relative ${
               activeTab === id
                 ? 'text-primary-600 dark:text-primary-400'

@@ -1,6 +1,7 @@
 import { useState, type FC } from 'react';
 import { User } from 'lucide-react';
 import type { FamilyMember } from '../../types';
+import { useToast } from '../Toast';
 
 interface ProfileSectionProps {
   member: FamilyMember;
@@ -8,6 +9,7 @@ interface ProfileSectionProps {
 }
 
 export const ProfileSection: FC<ProfileSectionProps> = ({ member, onUpdateDisplayName }) => {
+  const { toast } = useToast();
   const [showEdit, setShowEdit] = useState(false);
   const [editName, setEditName] = useState('');
 
@@ -17,10 +19,10 @@ export const ProfileSection: FC<ProfileSectionProps> = ({ member, onUpdateDispla
       await onUpdateDisplayName(editName.trim());
       setShowEdit(false);
       setEditName('');
-      alert('Display name updated successfully!');
+      toast('Display name updated!');
     } catch (error) {
       console.error('Error updating display name:', error);
-      alert(error instanceof Error ? error.message : 'Failed to update display name');
+      toast(error instanceof Error ? error.message : 'Failed to update display name', 'error');
     }
   };
 

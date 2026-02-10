@@ -7,6 +7,7 @@ import { Plus, Minus, Trash2, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { formatAmount, getPersonInfo } from '../utils/format';
 import type { Transaction, TransactionUnit, FamilyMember } from '../types';
+import { useToast } from '../components/Toast';
 
 interface GroupedTransactions {
   date: Date;
@@ -18,6 +19,7 @@ export const HistoryPage: FC = () => {
   const { transactions, deleteTransaction, loading, getBalance } = useTransactions();
   const { settings } = useSettings();
   const { family } = useFamily();
+  const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
 
@@ -75,7 +77,7 @@ export const HistoryPage: FC = () => {
       await deleteTransaction(txn.id);
     } catch (error) {
       console.error('Error deleting transaction:', error);
-      alert('Failed to delete transaction');
+      toast('Failed to delete transaction', 'error');
     } finally {
       setDeletingId(null);
     }

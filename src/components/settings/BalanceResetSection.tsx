@@ -2,6 +2,7 @@ import { useState, type FC } from 'react';
 import { RotateCcw } from 'lucide-react';
 import type { FamilyMember, TransactionUnit } from '../../types';
 import { formatAmount } from '../../utils/format';
+import { useToast } from '../Toast';
 
 interface BalanceResetSectionProps {
   members: FamilyMember[];
@@ -12,6 +13,7 @@ interface BalanceResetSectionProps {
 export const BalanceResetSection: FC<BalanceResetSectionProps> = ({
   members, getBalance, onResetBalance,
 }) => {
+  const { toast } = useToast();
   const [resetting, setResetting] = useState(false);
 
   const membersWithBalances = members
@@ -27,10 +29,10 @@ export const BalanceResetSection: FC<BalanceResetSectionProps> = ({
     setResetting(true);
     try {
       await onResetBalance(childId, balance, unit);
-      alert('Balance reset successfully!');
+      toast('Balance reset successfully!');
     } catch (error) {
       console.error('Error resetting balance:', error);
-      alert('Failed to reset balance');
+      toast('Failed to reset balance', 'error');
     } finally {
       setResetting(false);
     }

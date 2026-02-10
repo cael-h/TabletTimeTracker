@@ -1,6 +1,7 @@
 import { useState, type FC } from 'react';
 import { AlertCircle, UserCheck } from 'lucide-react';
 import type { FamilyMember } from '../../types';
+import { useToast } from '../Toast';
 
 interface ParentApprovalSectionProps {
   member: FamilyMember;
@@ -10,6 +11,7 @@ interface ParentApprovalSectionProps {
 export const ParentApprovalSection: FC<ParentApprovalSectionProps> = ({
   member, onRequestPermission,
 }) => {
+  const { toast } = useToast();
   const [requesting, setRequesting] = useState(false);
   const [requested, setRequested] = useState(false);
 
@@ -18,10 +20,10 @@ export const ParentApprovalSection: FC<ParentApprovalSectionProps> = ({
     try {
       await onRequestPermission();
       setRequested(true);
-      alert('Permission request sent! An existing parent will be notified to approve your account.');
+      toast('Permission request sent!');
     } catch (error) {
       console.error('Error requesting permission:', error);
-      alert(error instanceof Error ? error.message : 'Failed to request permission');
+      toast(error instanceof Error ? error.message : 'Failed to request permission', 'error');
     } finally {
       setRequesting(false);
     }

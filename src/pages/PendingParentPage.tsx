@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useFamily } from '../hooks/useFamily';
 import { UserCheck, Clock } from 'lucide-react';
+import { useToast } from '../components/Toast';
 
 export const PendingParentPage: React.FC = () => {
   const { getCurrentMember, requestPermission } = useFamily();
+  const { toast } = useToast();
   const [requesting, setRequesting] = useState(false);
   const [requested, setRequested] = useState(false);
 
@@ -17,7 +19,7 @@ export const PendingParentPage: React.FC = () => {
       setRequested(true);
     } catch (error) {
       console.error('Error requesting permission:', error);
-      alert(error instanceof Error ? error.message : 'Failed to request permission');
+      toast(error instanceof Error ? error.message : 'Failed to request permission', 'error');
     } finally {
       setRequesting(false);
     }

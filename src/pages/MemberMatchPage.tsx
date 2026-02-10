@@ -4,6 +4,7 @@ import { useFamily } from '../hooks/useFamily';
 import { useChild } from '../contexts/ChildContext';
 import { UserCheck, UserX, Loader2 } from 'lucide-react';
 import type { FamilyMember } from '../types';
+import { useToast } from '../components/Toast';
 
 interface MemberMatchPageProps {
   onMatchHandled: () => void;
@@ -13,6 +14,7 @@ export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled
   const { user } = useAuth();
   const { family, findMatchingMember, linkAuthToMember, createMemberInCurrentFamily } = useFamily();
   const { setActiveChildId } = useChild();
+  const { toast } = useToast();
   const [matchedMember, setMatchedMember] = useState<FamilyMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [linking, setLinking] = useState(false);
@@ -74,7 +76,7 @@ export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled
       onMatchHandled();
     } catch (error) {
       console.error('Error linking to member:', error);
-      alert(error instanceof Error ? error.message : 'Failed to link to member');
+      toast(error instanceof Error ? error.message : 'Failed to link to member', 'error');
       setLinking(false);
     }
   };
@@ -93,7 +95,7 @@ export const MemberMatchPage: React.FC<MemberMatchPageProps> = ({ onMatchHandled
       onMatchHandled();
     } catch (error) {
       console.error('Error creating new member:', error);
-      alert(error instanceof Error ? error.message : 'Failed to create new member');
+      toast(error instanceof Error ? error.message : 'Failed to create new member', 'error');
       setLinking(false);
     }
   };

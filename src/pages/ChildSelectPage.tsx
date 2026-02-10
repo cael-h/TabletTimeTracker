@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useSettings } from '../hooks/useSettings';
 import { useChild } from '../contexts/ChildContext';
 import { Baby, Plus, Trash2 } from 'lucide-react';
+import { useToast } from '../components/Toast';
 
 export const ChildSelectPage: React.FC = () => {
   const { settings, addChild, removeChild } = useSettings();
   const { setActiveChildId } = useChild();
+  const { toast } = useToast();
   const [showAddChild, setShowAddChild] = useState(false);
   const [newChildName, setNewChildName] = useState('');
   const [adding, setAdding] = useState(false);
@@ -25,7 +27,7 @@ export const ChildSelectPage: React.FC = () => {
       setShowAddChild(false);
     } catch (error) {
       console.error('Error adding child:', error);
-      alert('Failed to add child');
+      toast('Failed to add child', 'error');
     } finally {
       setAdding(false);
     }
@@ -37,7 +39,7 @@ export const ChildSelectPage: React.FC = () => {
         await removeChild(childId);
       } catch (error) {
         console.error('Error removing child:', error);
-        alert('Failed to remove child');
+        toast('Failed to remove child', 'error');
       }
     }
   };

@@ -3,10 +3,13 @@ import { useFamily } from '../hooks/useFamily';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
 import { UserCheck, Clock, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '../components/Toast';
 
 export const ApprovalsPage = () => {
   const { isApprovedParent, getPendingParentRequests, updateMemberStatus } = useFamily();
   const { pendingTransactions, updateTransactionStatus } = useTransactions();
+  const { toast } = useToast();
   const { settings } = useSettings();
   const [loading, setLoading] = useState<string | null>(null);
 
@@ -20,7 +23,7 @@ export const ApprovalsPage = () => {
       await updateMemberStatus(memberId, 'approved');
     } catch (err) {
       console.error('Error approving member:', err);
-      alert('Failed to approve member');
+      toast('Failed to approve member', 'error');
     } finally {
       setLoading(null);
     }
@@ -33,7 +36,7 @@ export const ApprovalsPage = () => {
       await updateMemberStatus(memberId, 'rejected');
     } catch (err) {
       console.error('Error rejecting member:', err);
-      alert('Failed to reject member');
+      toast('Failed to reject member', 'error');
     } finally {
       setLoading(null);
     }
@@ -46,7 +49,7 @@ export const ApprovalsPage = () => {
       await updateTransactionStatus(transactionId, 'approved');
     } catch (err) {
       console.error('Error approving transaction:', err);
-      alert('Failed to approve transaction');
+      toast('Failed to approve transaction', 'error');
     } finally {
       setLoading(null);
     }
@@ -59,7 +62,7 @@ export const ApprovalsPage = () => {
       await updateTransactionStatus(transactionId, 'rejected');
     } catch (err) {
       console.error('Error rejecting transaction:', err);
-      alert('Failed to reject transaction');
+      toast('Failed to reject transaction', 'error');
     } finally {
       setLoading(null);
     }
@@ -70,18 +73,8 @@ export const ApprovalsPage = () => {
     return child?.name || 'Unknown';
   };
 
-  const formatTime = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-
-    if (days > 0) return `${days}d ago`;
-    if (hours > 0) return `${hours}h ago`;
-    if (minutes > 0) return `${minutes}m ago`;
-    return 'Just now';
-  };
+  const formatTime = (date: Date) =>
+    formatDistanceToNow(date, { addSuffix: true });
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">

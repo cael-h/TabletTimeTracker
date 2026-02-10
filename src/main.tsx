@@ -10,10 +10,12 @@ import { SettingsProvider } from './contexts/SettingsContext'
 import { TransactionsProvider } from './contexts/TransactionsContext'
 import { IdentityProvider } from './contexts/IdentityContext'
 import { ChildProvider } from './contexts/ChildContext'
+import { ToastProvider } from './components/Toast'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
+      <ToastProvider>
       <ThemeProvider>
         <AuthProvider>
           <FamilyProvider>
@@ -29,6 +31,7 @@ createRoot(document.getElementById('root')!).render(
           </FamilyProvider>
         </AuthProvider>
       </ThemeProvider>
+      </ToastProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

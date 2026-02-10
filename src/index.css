@@ -14,11 +14,11 @@
   html, body, #root {
     @apply h-full w-full;
   }
+}
 
-  /* Smooth transitions for theme changes */
-  * {
-    @apply transition-colors duration-200;
-  }
+/* Safe-area inset for devices with notch / gesture bar */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @layer components {
@@ -49,4 +49,13 @@
   .chip-selected {
     @apply bg-primary-500 text-white hover:bg-primary-600 dark:hover:bg-primary-600 ring-2 ring-primary-700 dark:ring-primary-300 ring-offset-2 dark:ring-offset-gray-900;
   }
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-1rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.2s ease-out;
 }

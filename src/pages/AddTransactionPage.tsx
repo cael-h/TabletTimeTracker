@@ -7,6 +7,7 @@ import { useFamily } from '../hooks/useFamily';
 import { useIdentity } from '../contexts/IdentityContext';
 import { TrendingUp, TrendingDown, Calendar, Plus, Check, Award, Briefcase, User } from 'lucide-react';
 import type { TransactionInput, TransactionCategory, TransactionUnit } from '../types';
+import { useToast } from '../components/Toast';
 
 const QUICK_AMOUNTS = [3, 5, 10, 15, 30, 60];
 
@@ -35,6 +36,7 @@ export const AddTransactionPage: FC<AddTransactionPageProps> = ({ preSelectedMem
   const { settings } = useSettings();
   const { family, isApprovedParent } = useFamily();
   const { identity } = useIdentity();
+  const { toast } = useToast();
 
   const isParent = isApprovedParent();
 
@@ -174,7 +176,7 @@ export const AddTransactionPage: FC<AddTransactionPageProps> = ({ preSelectedMem
       }, 1500);
     } catch (error) {
       console.error('Error adding transaction:', error);
-      alert('Failed to add transaction');
+      toast('Failed to add transaction', 'error');
     } finally {
       setSubmitting(false);
     }

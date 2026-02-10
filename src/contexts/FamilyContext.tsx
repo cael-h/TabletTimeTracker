@@ -18,6 +18,7 @@ import {
   ensureMembersHaveChildIds,
   ensureChildRecordsHaveIds,
 } from '../utils/familyHelpers';
+import { useToast } from '../components/Toast';
 
 interface FamilyContextType {
   family: FamilyGroup | null;
@@ -54,6 +55,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
+  const { toast } = useToast();
   const migrationRanRef = useRef(false);
 
   // ── Firestore listener ──────────────────────────────────────────
@@ -280,7 +282,7 @@ export const FamilyProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       try { await navigator.share(shareData); } catch { /* cancelled */ }
     } else {
       await navigator.clipboard.writeText(inviteLink);
-      alert('Invite link copied to clipboard!');
+      toast('Invite link copied to clipboard!');
     }
   };
 

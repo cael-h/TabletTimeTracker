@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import { Palette } from 'lucide-react';
 import type { FamilyMember } from '../../types';
+import { useToast } from '../Toast';
 
 interface MemberColorsSectionProps {
   members: FamilyMember[];
@@ -8,6 +9,7 @@ interface MemberColorsSectionProps {
 }
 
 export const MemberColorsSection: FC<MemberColorsSectionProps> = ({ members, onUpdateColor }) => {
+  const { toast } = useToast();
   const sortedMembers = [...members].sort((a, b) => {
     if (a.role === 'parent' && b.role !== 'parent') return -1;
     if (a.role !== 'parent' && b.role === 'parent') return 1;
@@ -19,7 +21,7 @@ export const MemberColorsSection: FC<MemberColorsSectionProps> = ({ members, onU
       await onUpdateColor(memberId, color);
     } catch (error) {
       console.error('Error updating member color:', error);
-      alert(error instanceof Error ? error.message : 'Failed to update color');
+      toast(error instanceof Error ? error.message : 'Failed to update color', 'error');
     }
   };
 
