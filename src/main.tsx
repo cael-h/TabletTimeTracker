@@ -6,6 +6,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { FamilyProvider } from './contexts/FamilyContext'
+import { SettingsProvider } from './contexts/SettingsContext'
 import { IdentityProvider } from './contexts/IdentityContext'
 import { ChildProvider } from './contexts/ChildContext'
 
@@ -15,11 +16,13 @@ createRoot(document.getElementById('root')!).render(
       <ThemeProvider>
         <AuthProvider>
           <FamilyProvider>
-            <IdentityProvider>
-              <ChildProvider>
-                <App />
-              </ChildProvider>
-            </IdentityProvider>
+            <SettingsProvider>
+              <IdentityProvider>
+                <ChildProvider>
+                  <App />
+                </ChildProvider>
+              </IdentityProvider>
+            </SettingsProvider>
           </FamilyProvider>
         </AuthProvider>
       </ThemeProvider>
