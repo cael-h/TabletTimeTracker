@@ -173,7 +173,42 @@ if [ -n "$1" ]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 9. Project-level Codex config
+# 9. Write ~/.codex/config.toml
+# -----------------------------------------------------------------------------
+CODEX_CONFIG_DIR="$TERMUX_HOME/.codex"
+CODEX_CONFIG="$CODEX_CONFIG_DIR/config.toml"
+mkdir -p "$CODEX_CONFIG_DIR"
+
+if [ ! -f "$CODEX_CONFIG" ]; then
+  info "Writing default ~/.codex/config.toml..."
+  cat > "$CODEX_CONFIG" << 'TOML_EOF'
+# Codex CLI config — ~/.codex/config.toml
+# Docs: https://github.com/openai/codex
+
+model = "o4-mini"
+
+[approval]
+# "on-failure"  = ask only when a command fails
+# "on-request"  = model decides when to ask
+# "never"       = fully automatic (use with care)
+policy = "on-failure"
+
+[sandbox]
+# "read-only"   = model can read but not write files without approval
+# "workspace"   = full read/write within the working directory
+policy = "workspace"
+
+[shell_environment_policy]
+# Inherit your current shell environment (PATH, etc.)
+inherit = "all"
+TOML_EOF
+  success "Created $CODEX_CONFIG"
+else
+  success "$CODEX_CONFIG already exists — skipping"
+fi
+
+# -----------------------------------------------------------------------------
+# 10. Project-level Codex config
 # -----------------------------------------------------------------------------
 info "Checking for Codex project config (AGENTS.md)..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -214,7 +249,7 @@ else
 fi
 
 # -----------------------------------------------------------------------------
-# 10. Summary
+# 11. Summary
 # -----------------------------------------------------------------------------
 echo ""
 echo "============================================="
@@ -229,7 +264,12 @@ echo "    codex"
 echo ""
 echo "  Codex will read AGENTS.md for project context."
 echo ""
+echo "  Non-interactive one-shot usage:"
+echo "    codex exec \"describe what this file does: src/hooks/useFamily.ts\""
+echo ""
 echo "  If 'codex' is not found after reloading, check:"
 echo "    echo \$PATH"
 echo "    ls ~/.npm-global/bin/"
+echo ""
+echo "  Config file: ~/.codex/config.toml"
 echo ""
