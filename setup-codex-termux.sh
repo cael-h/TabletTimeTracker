@@ -129,13 +129,15 @@ export PATH="$NPM_PREFIX/bin:$PATH"
 success "npm prefix set to $NPM_PREFIX"
 
 # -----------------------------------------------------------------------------
-# 7. Install Codex CLI
+# 7. Install Codex CLI (Termux ARM64 community port)
 # -----------------------------------------------------------------------------
-# --include=optional is required on ARM64 (Termux/Android) to pull in the
-# @openai/codex-linux-arm64 native binary. Without it codex throws:
-#   Error: Missing optional dependency @openai/codex-linux-arm64
-info "Installing @openai/codex globally (with optional deps for ARM64)..."
-npm install -g @openai/codex@latest --include=optional
+# The official @openai/codex package requires @openai/codex-linux-arm64,
+# which is NOT published to npm and does not support Android/Termux.
+# @mmmbuto/codex-cli-termux is a community port compiled natively for
+# Android ARM64 (aarch64) and tracks official Codex releases closely.
+# Source: https://github.com/alexzeitgeist/codex-termux
+info "Installing @mmmbuto/codex-cli-termux (Android ARM64 port)..."
+npm install -g @mmmbuto/codex-cli-termux
 
 if ! command -v codex &>/dev/null; then
   error "codex binary not found after install.
@@ -261,8 +263,8 @@ echo "============================================="
 echo ""
 echo "  Reload your shell:    source ~/.bashrc"
 echo ""
-echo "  If you see 'Missing optional dependency @openai/codex-linux-arm64':"
-echo "    npm install -g @openai/codex@latest --include=optional"
+echo "  NOTE: Uses @mmmbuto/codex-cli-termux (community ARM64 port of Codex)"
+echo "  The official @openai/codex does NOT support Android/Termux."
 echo ""
 echo "  Run Codex in the project:"
 echo "    cd ~/TabletTimeTracker"
