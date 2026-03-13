@@ -131,8 +131,11 @@ success "npm prefix set to $NPM_PREFIX"
 # -----------------------------------------------------------------------------
 # 7. Install Codex CLI
 # -----------------------------------------------------------------------------
-info "Installing @openai/codex globally..."
-npm install -g @openai/codex
+# --include=optional is required on ARM64 (Termux/Android) to pull in the
+# @openai/codex-linux-arm64 native binary. Without it codex throws:
+#   Error: Missing optional dependency @openai/codex-linux-arm64
+info "Installing @openai/codex globally (with optional deps for ARM64)..."
+npm install -g @openai/codex@latest --include=optional
 
 if ! command -v codex &>/dev/null; then
   error "codex binary not found after install.
@@ -257,6 +260,9 @@ echo "  Setup complete!"
 echo "============================================="
 echo ""
 echo "  Reload your shell:    source ~/.bashrc"
+echo ""
+echo "  If you see 'Missing optional dependency @openai/codex-linux-arm64':"
+echo "    npm install -g @openai/codex@latest --include=optional"
 echo ""
 echo "  Run Codex in the project:"
 echo "    cd ~/TabletTimeTracker"
