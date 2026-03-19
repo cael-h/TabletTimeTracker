@@ -10,6 +10,7 @@ import { SettingsProvider } from './contexts/SettingsContext'
 import { TransactionsProvider } from './contexts/TransactionsContext'
 import { IdentityProvider } from './contexts/IdentityContext'
 import { ChildProvider } from './contexts/ChildContext'
+import { HiddenMembersProvider } from './contexts/HiddenMembersContext'
 import { ToastProvider } from './components/Toast'
 
 createRoot(document.getElementById('root')!).render(
@@ -23,7 +24,9 @@ createRoot(document.getElementById('root')!).render(
               <TransactionsProvider>
                 <IdentityProvider>
                   <ChildProvider>
-                    <App />
+                    <HiddenMembersProvider>
+                      <App />
+                    </HiddenMembersProvider>
                   </ChildProvider>
                 </IdentityProvider>
               </TransactionsProvider>

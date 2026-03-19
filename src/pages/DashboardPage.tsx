@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
 import { useFamily } from '../hooks/useFamily';
+import { useHiddenMembers } from '../contexts/HiddenMembersContext';
 import { Plus, Minus, Clock, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -13,6 +14,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const { approvedTransactions, loading } = useTransactions();
   const { settings } = useSettings();
   const { family } = useFamily();
+  const { isHidden } = useHiddenMembers();
   const [showKids, setShowKids] = useState(true);
   const [showParents, setShowParents] = useState(true);
 
@@ -86,11 +88,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       }
     });
 
-    // Separate into kids and parents
+    // Separate into kids and parents, filtering out hidden members
     const kids: any[] = [];
     const parents: any[] = [];
 
     balanceMap.forEach((data) => {
+      if (isHidden(data.member.id)) return;
       if (data.member.role === 'kid') {
         kids.push(data);
       } else if (data.member.role === 'parent') {
@@ -103,7 +106,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     parents.sort((a, b) => a.member.displayName.localeCompare(b.member.displayName));
 
     return { kids, parents };
-  }, [family, approvedTransactions]);
+  }, [family, approvedTransactions, isHidden]);
 
   if (loading) {
     return (
