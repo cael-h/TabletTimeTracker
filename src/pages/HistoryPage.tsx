@@ -3,6 +3,7 @@ import type { FC } from 'react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
 import { useFamily } from '../hooks/useFamily';
+import { useHiddenMembers } from '../contexts/HiddenMembersContext';
 import { Plus, Minus, Trash2, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { format, isSameDay } from 'date-fns';
 import { formatAmount, getPersonInfo } from '../utils/format';
@@ -19,14 +20,15 @@ export const HistoryPage: FC = () => {
   const { transactions, deleteTransaction, loading, getBalance } = useTransactions();
   const { settings } = useSettings();
   const { family } = useFamily();
+  const { isHidden } = useHiddenMembers();
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filterMemberId, setFilterMemberId] = useState<string | null>(null);
 
-  // Build list of members with childIds for the filter
+  // Build list of members with childIds for the filter, excluding hidden members
   const filterableMembers: FamilyMember[] = useMemo(
-    () => family ? Object.values(family.members).filter(m => m.childId).sort((a, b) => a.displayName.localeCompare(b.displayName)) : [],
-    [family],
+    () => family ? Object.values(family.members).filter(m => m.childId && !isHidden(m.id)).sort((a, b) => a.displayName.localeCompare(b.displayName)) : [],
+    [family, isHidden],
   );
 
   const filterMember = filterableMembers.find(m => m.id === filterMemberId) ?? null;

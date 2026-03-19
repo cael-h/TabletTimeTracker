@@ -5,6 +5,7 @@ import { useTransactions } from '../hooks/useTransactions';
 import { useSettings } from '../hooks/useSettings';
 import { useFamily } from '../hooks/useFamily';
 import { useIdentity } from '../contexts/IdentityContext';
+import { useHiddenMembers } from '../contexts/HiddenMembersContext';
 import { TrendingUp, TrendingDown, Calendar, Plus, Check, Award, Briefcase, User } from 'lucide-react';
 import type { TransactionInput, TransactionCategory, TransactionUnit } from '../types';
 import { useToast } from '../components/Toast';
@@ -36,14 +37,15 @@ export const AddTransactionPage: FC<AddTransactionPageProps> = ({ preSelectedMem
   const { settings } = useSettings();
   const { family, isApprovedParent } = useFamily();
   const { identity } = useIdentity();
+  const { isHidden } = useHiddenMembers();
   const { toast } = useToast();
 
   const isParent = isApprovedParent();
 
   // Memoize to avoid creating a new array every render (which would re-trigger the useEffect)
   const availableMembers = useMemo(
-    () => family ? Object.values(family.members).filter(m => m.childId) : [],
-    [family],
+    () => family ? Object.values(family.members).filter(m => m.childId && !isHidden(m.id)) : [],
+    [family, isHidden],
   );
 
   // Set default selected member: preSelected prop > localStorage > alphabetically first child
