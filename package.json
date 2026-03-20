@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx tsc -b && vite build",
-    "lint": "npx eslint .",
-    "preview": "vite preview"
+    "build": "$HOME/TabletTimeTracker/node_modules/.bin/tsc -b && $HOME/TabletTimeTracker/node_modules/.bin/vite build",
+    "lint": "$HOME/TabletTimeTracker/node_modules/.bin/eslint .",
+    "preview": "$HOME/TabletTimeTracker/node_modules/.bin/vite preview"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
