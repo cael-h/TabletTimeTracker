@@ -124,6 +124,22 @@ export const UsagePage: React.FC = () => {
     return Math.ceil(minutes / 10) * 10;
   })();
 
+  // Trigger alarm (sound + vibration + flash)
+  const triggerAlarm = useCallback(() => {
+    setIsFlashing(true);
+    flashIntervalRef.current = setInterval(() => {
+      setIsFlashing(prev => !prev);
+    }, 500);
+
+    if (navigator.vibrate) {
+      navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
+    }
+
+    if (soundEnabled) {
+      playAlarmSound();
+    }
+  }, [soundEnabled]);
+
   // Timer update effect — rAF for smooth visuals, setInterval as background fallback for alarm
   useEffect(() => {
     let animationFrame: number;
@@ -178,22 +194,6 @@ export const UsagePage: React.FC = () => {
       }
     };
   }, []);
-
-  // Trigger alarm (sound + vibration + flash)
-  const triggerAlarm = useCallback(() => {
-    setIsFlashing(true);
-    flashIntervalRef.current = setInterval(() => {
-      setIsFlashing(prev => !prev);
-    }, 500);
-
-    if (navigator.vibrate) {
-      navigator.vibrate([500, 200, 500, 200, 500, 200, 500]);
-    }
-
-    if (soundEnabled) {
-      playAlarmSound();
-    }
-  }, [soundEnabled]);
 
   // Play alarm sound using Web Audio API
   const playAlarmSound = () => {
