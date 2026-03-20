@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "$HOME/TabletTimeTracker/node_modules/.bin/tsc -b && $HOME/TabletTimeTracker/node_modules/.bin/vite build",
-    "lint": "$HOME/TabletTimeTracker/node_modules/.bin/eslint .",
-    "preview": "$HOME/TabletTimeTracker/node_modules/.bin/vite preview"
+    "dev": "$HOME/storage/shared/projects/TabletTimeTracker/node_modules/.bin/vite",
+    "build": "$HOME/storage/shared/projects/TabletTimeTracker/node_modules/.bin/tsc -b && $HOME/storage/shared/projects/TabletTimeTracker/node_modules/.bin/vite build",
+    "lint": "$HOME/storage/shared/projects/TabletTimeTracker/node_modules/.bin/eslint .",
+    "preview": "$HOME/storage/shared/projects/TabletTimeTracker/node_modules/.bin/vite preview"
   },
   "dependencies": {
     "date-fns": "^4.1.0",
