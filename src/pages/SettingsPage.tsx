@@ -14,7 +14,6 @@ import { FamilySection } from '../components/settings/FamilySection';
 import { ThemeSection } from '../components/settings/ThemeSection';
 import { ReasonsSection } from '../components/settings/ReasonsSection';
 import { MemberColorsSection } from '../components/settings/MemberColorsSection';
-import { HideMembersSection } from '../components/settings/HideMembersSection';
 import { BalanceResetSection } from '../components/settings/BalanceResetSection';
 
 export const SettingsPage: FC = () => {
@@ -104,7 +103,6 @@ export const SettingsPage: FC = () => {
 
       {family && (
         <>
-          <HideMembersSection members={Object.values(family.members)} />
           <MemberColorsSection
             members={Object.values(family.members)}
             onUpdateColor={updateMemberColor}

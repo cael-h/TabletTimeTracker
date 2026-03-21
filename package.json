@@ -4,10 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "$HOME/node_modules/.bin/vite",
-    "build": "$HOME/node_modules/.bin/tsc -b && $HOME/node_modules/.bin/vite build",
-    "lint": "$HOME/node_modules/.bin/eslint .",
-    "preview": "$HOME/node_modules/.bin/vite preview"
+    "dev": "node ./node_modules/vite/bin/vite.js",
+    "build": "node ./node_modules/typescript/bin/tsc -b && node ./node_modules/vite/bin/vite.js build",
+    "lint": "node ./node_modules/eslint/bin/eslint.js .",
+    "preview": "node ./node_modules/vite/bin/vite.js preview"
   },
   "dependencies": {
     "date-fns": "^4.1.0",

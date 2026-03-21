@@ -51,13 +51,6 @@ function App() {
     };
   }, []);
 
-  // Update matchHandled when user is already linked (avoiding setState during render)
-  useEffect(() => {
-    if (user && family && userMember && !matchHandled) {
-      setMatchHandled(true);
-    }
-  }, [user, family, userMember, matchHandled]);
-
   // Auto-sync identity and childId from member data
   useEffect(() => {
     if (userMember) {
@@ -70,6 +63,13 @@ function App() {
       }
     }
   }, [userMember, syncIdentityFromMember, syncChildFromMember]);
+
+  const handleDashboardNavigate = useCallback((tab: string, memberId?: string) => {
+    if (memberId) setAddPageMemberId(memberId);
+    setActiveTab(tab);
+  }, []);
+
+  const handleMemberUsed = useCallback(() => setAddPageMemberId(null), []);
 
   // Loading state
   if (authLoading || (user && familyLoading)) {
@@ -109,13 +109,6 @@ function App() {
   if (!activeChildId) {
     return <ChildSelectPage />;
   }
-
-  const handleDashboardNavigate = useCallback((tab: string, memberId?: string) => {
-    if (memberId) setAddPageMemberId(memberId);
-    setActiveTab(tab);
-  }, []);
-
-  const handleMemberUsed = useCallback(() => setAddPageMemberId(null), []);
 
   const renderPage = () => {
     switch (activeTab) {

@@ -124,6 +124,40 @@ export const UsagePage: React.FC = () => {
     return Math.ceil(minutes / 10) * 10;
   })();
 
+  // Play alarm sound using Web Audio API
+  const playAlarmSound = useCallback(() => {
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioContextRef.current;
+
+      const playBeep = (startTime: number, frequency: number) => {
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscillator.frequency.value = frequency;
+        oscillator.type = 'sine';
+
+        gainNode.gain.setValueAtTime(0.3, startTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
+
+        oscillator.start(startTime);
+        oscillator.stop(startTime + 0.3);
+      };
+
+      const now = ctx.currentTime;
+      for (let i = 0; i < 6; i++) {
+        playBeep(now + i * 0.4, i % 2 === 0 ? 880 : 660);
+      }
+    } catch (e) {
+      console.error('Error playing alarm sound:', e);
+    }
+  }, []);
+
   // Trigger alarm (sound + vibration + flash)
   const triggerAlarm = useCallback(() => {
     setIsFlashing(true);
@@ -138,7 +172,7 @@ export const UsagePage: React.FC = () => {
     if (soundEnabled) {
       playAlarmSound();
     }
-  }, [soundEnabled]);
+  }, [playAlarmSound, soundEnabled]);
 
   // Timer update effect — rAF for smooth visuals, setInterval as background fallback for alarm
   useEffect(() => {
@@ -194,40 +228,6 @@ export const UsagePage: React.FC = () => {
       }
     };
   }, []);
-
-  // Play alarm sound using Web Audio API
-  const playAlarmSound = () => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      const ctx = audioContextRef.current;
-
-      const playBeep = (startTime: number, frequency: number) => {
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-
-        oscillator.connect(gainNode);
-        gainNode.connect(ctx.destination);
-
-        oscillator.frequency.value = frequency;
-        oscillator.type = 'sine';
-
-        gainNode.gain.setValueAtTime(0.3, startTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.3);
-
-        oscillator.start(startTime);
-        oscillator.stop(startTime + 0.3);
-      };
-
-      const now = ctx.currentTime;
-      for (let i = 0; i < 6; i++) {
-        playBeep(now + i * 0.4, i % 2 === 0 ? 880 : 660);
-      }
-    } catch (e) {
-      console.error('Error playing alarm sound:', e);
-    }
-  };
 
   // Stop alarm
   const stopAlarm = () => {
