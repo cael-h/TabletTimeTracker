@@ -83,7 +83,9 @@ export const SettingsPage: FC = () => {
             onRemove={removeRewardReason}
           />
           <ReasonsSection
-            title="Redemption Reasons"
+            title="Rewards to Spend On"
+            description="Add the custom rewards your family uses for redemptions, like candy, dollars, extra TV, or game time."
+            inputPlaceholder="Add custom reward"
             icon={TrendingDown}
             iconClassName="text-red-600"
             reasons={settings.redemptionReasons}

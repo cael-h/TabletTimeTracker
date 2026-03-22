@@ -3,6 +3,8 @@ import { Plus, X } from 'lucide-react';
 
 interface ReasonsSectionProps {
   title: string;
+  description?: string;
+  inputPlaceholder?: string;
   icon: ComponentType<{ size?: number; className?: string }>;
   iconClassName?: string;
   reasons: string[];
@@ -11,7 +13,14 @@ interface ReasonsSectionProps {
 }
 
 export const ReasonsSection: FC<ReasonsSectionProps> = ({
-  title, icon: Icon, iconClassName, reasons, onAdd, onRemove,
+  title,
+  description,
+  inputPlaceholder = 'Add new item',
+  icon: Icon,
+  iconClassName,
+  reasons,
+  onAdd,
+  onRemove,
 }) => {
   const [newReason, setNewReason] = useState('');
 
@@ -27,11 +36,16 @@ export const ReasonsSection: FC<ReasonsSectionProps> = ({
         <Icon size={20} className={iconClassName} />
         <h2 className="text-lg font-semibold">{title}</h2>
       </div>
+      {description && (
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          {description}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2 mb-3">
         {reasons.map((reason) => (
           <div key={reason} className="chip flex items-center gap-2 chip-selected">
             {reason}
-            <button onClick={() => onRemove(reason)} className="hover:bg-white/20 rounded-full p-1">
+            <button onClick={() => onRemove(reason)} className="hover:bg-white/20 rounded-full p-1" aria-label={`Remove ${reason}`}>
               <X size={14} />
             </button>
           </div>
@@ -43,10 +57,10 @@ export const ReasonsSection: FC<ReasonsSectionProps> = ({
           value={newReason}
           onChange={(e) => setNewReason(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-          placeholder="Add new reason"
+          placeholder={inputPlaceholder}
           className="input-field flex-1"
         />
-        <button onClick={handleAdd} className="btn-primary flex items-center gap-2">
+        <button onClick={handleAdd} className="btn-primary flex items-center gap-2" aria-label={`Add to ${title}`}>
           <Plus size={16} />
         </button>
       </div>

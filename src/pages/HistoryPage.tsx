@@ -118,9 +118,9 @@ export const HistoryPage: FC = () => {
   }
 
   return (
-    <div className="p-4 pb-24">
+    <div className="w-full overflow-x-hidden p-4 pb-24">
       {/* Member Filter + Balance Header */}
-      <div className="card mb-4 sticky top-0 z-10 space-y-3">
+      <div className="card mb-4 sticky top-0 z-0 space-y-3">
         {/* Member filter chips */}
         {filterableMembers.length > 1 && (
           <div className="flex flex-wrap gap-2">
@@ -199,9 +199,9 @@ export const HistoryPage: FC = () => {
                   return (
                     <div
                       key={txn.id}
-                      className="card flex items-center justify-between group"
+                      className="card w-full max-w-full flex items-start justify-between gap-3 overflow-hidden group"
                     >
-                      <div className="flex items-center gap-3 flex-1">
+                      <div className="flex min-w-0 flex-1 items-start gap-3">
                         <div
                           className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                             txn.amount > 0
@@ -212,11 +212,11 @@ export const HistoryPage: FC = () => {
                           {txn.amount > 0 ? <Plus size={20} /> : <Minus size={20} />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <p className="font-medium truncate">{txn.reason}</p>
+                          <div className="mb-1 flex min-w-0 flex-wrap items-center gap-2">
+                            <p className="min-w-0 font-medium whitespace-normal break-words [overflow-wrap:anywhere]">{txn.reason}</p>
                             {getStatusBadge(txn.status)}
                           </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                          <p className="min-w-0 text-xs text-gray-600 dark:text-gray-400 whitespace-normal break-words [overflow-wrap:anywhere]">
                             <span style={{ color: personInfo.color }} className="font-semibold">
                               {personInfo.name}
                             </span>{' '}
@@ -224,9 +224,9 @@ export const HistoryPage: FC = () => {
                           </p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-shrink-0 items-center gap-3 pl-2">
                         <span
-                          className={`text-lg font-semibold ${
+                          className={`text-right text-lg font-semibold ${
                             txn.amount > 0
                               ? 'text-green-600 dark:text-green-500'
                               : 'text-red-600 dark:text-red-500'

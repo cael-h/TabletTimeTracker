@@ -328,7 +328,7 @@ export const AddTransactionPage: FC<AddTransactionPageProps> = ({ preSelectedMem
 
       {/* Reason Selection */}
       <div className="card">
-        <h2 className="text-lg font-semibold mb-4">Select Reason</h2>
+        <h2 className="text-lg font-semibold mb-4">{category === 'Redemption' ? 'Select Reward' : 'Select Reason'}</h2>
         <div className="flex flex-wrap gap-2 mb-4">
           {reasons.map((reason) => (
             <button
@@ -343,13 +343,13 @@ export const AddTransactionPage: FC<AddTransactionPageProps> = ({ preSelectedMem
             onClick={() => handleReasonSelect('Other')}
             className={`chip ${selectedReason === 'Other' ? 'chip-selected' : ''}`}
           >
-            <Plus size={16} className="inline" /> Other
+            <Plus size={16} className="inline" /> {category === 'Redemption' ? 'Custom' : 'Other'}
           </button>
         </div>
         {selectedReason === 'Other' && (
           <div>
             <label htmlFor="customReason" className="block text-sm font-medium mb-2">
-              Custom Reason
+              {category === 'Redemption' ? 'Custom Reward' : 'Custom Reason'}
             </label>
             <input
               id="customReason"
@@ -357,7 +357,7 @@ export const AddTransactionPage: FC<AddTransactionPageProps> = ({ preSelectedMem
               value={customReason}
               onChange={(e) => setCustomReason(e.target.value)}
               className="input-field"
-              placeholder="Enter reason"
+              placeholder={category === 'Redemption' ? 'Enter reward' : 'Enter reason'}
             />
           </div>
         )}
